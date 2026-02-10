@@ -100,13 +100,14 @@ public class gen_bill {
         this.userId = userId;
     }
 
-    public int getContractNo() {
+    public Integer getContractNo() {
         return contractNo;
     }
 
-    public void setContractNo(int contractNo) {
+    public void setContractNo(Integer contractNo) {
         this.contractNo = contractNo;
     }
+
 
     public int getSrNo() {
         return srNo;

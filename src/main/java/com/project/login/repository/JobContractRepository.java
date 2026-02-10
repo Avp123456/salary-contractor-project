@@ -7,10 +7,13 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface JobContractRepository extends JpaRepository<gen_bill, Long> {
 
-    // REPORT + EXCEL QUERY
+    /* ==========================
+       REPORT + EXCEL QUERY
+       ========================== */
     @Query("""
         SELECT j FROM gen_bill j
         WHERE j.brokerName = :brokerName
@@ -18,30 +21,56 @@ public interface JobContractRepository extends JpaRepository<gen_bill, Long> {
           AND (:traderName IS NULL OR j.traderName LIKE :traderName)
           AND (:fromDate IS NULL OR j.contractDate >= :fromDate)
           AND (:toDate IS NULL OR j.contractDate <= :toDate)
-        ORDER BY j.contractDate DESC
+        ORDER BY j.contractNo  DESC
     """)
     List<gen_bill> searchReports(
-            @Param("brokerName") String userName,
+            @Param("brokerName") String brokerName,
             @Param("weaverName") String weaverName,
             @Param("traderName") String traderName,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate
     );
 
-    // ✅ USER-WISE AUTO INCREMENT (INT contract_no)
+    /* ==========================
+       FIND FOR EDIT / DELETE
+       ========================== */
+    Optional<gen_bill> findByUserIdAndContractNo(
+            Long userId,
+            Long contractNo
+    );
+
+    /* ==========================
+       (OPTIONAL) EXISTS CHECK
+       ========================== */
+    boolean existsByUserIdAndContractNo(
+            Long userId,
+            Long contractNo
+    );
+
+    /* ==========================
+       USER-WISE AUTO INCREMENT
+       ========================== */
     @Query(value = """
-    	    SELECT COALESCE(MAX(contract_no), 0)
-    	    FROM job_contract
-    	    WHERE user_id = :userId
-    	""", nativeQuery = true)
-    Integer findMaxContractNoByUser(@Param("userId") Long userId);
+        SELECT COALESCE(MAX(contract_no), 0)
+        FROM job_contract
+        WHERE user_id = :userId
+    """, nativeQuery = true)
+    Integer findMaxContractNoByUser(
+            @Param("userId") Long userId
+    );
+
+    @Query(value = """
+        SELECT COALESCE(MAX(sr_no), 0)
+        FROM job_contract
+        WHERE user_id = :userId
+    """, nativeQuery = true)
+    Integer findMaxSrNoByUser(
+            @Param("userId") Long userId
+    );
     
-    @Query(value = """
-            SELECT COALESCE(MAX(sr_no), 0)
-            FROM job_contract
-            WHERE user_id = :userId
-        """, nativeQuery = true)
-        Integer findMaxSrNoByUser(@Param("userId") Long userId);
-   
+    Optional<gen_bill> findByUserIdAndContractNo(
+            Long userId,
+            Integer contractNo   // ✅ must be Integer
+    );
 
 }

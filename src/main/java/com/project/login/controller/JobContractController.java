@@ -31,11 +31,10 @@ public class JobContractController {
     }
 
     /* =====================
-       SHOW GEN BILL PAGE
+       SHOW GEN BILL PAGE (CREATE)
        ===================== */
     @GetMapping("/gen-bill")
     public String genBillPage(Model model, Authentication authentication) {
-    	System.out.println("Page Visited: " + "Gen_Bill");
 
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
@@ -46,13 +45,48 @@ public class JobContractController {
                 weaverTraderService.getWeavers(userId));
         model.addAttribute("traders",
                 weaverTraderService.getTraders(userId));
-        model.addAttribute("bill", new gen_bill());
+
+        model.addAttribute("editMode", false);
+        model.addAttribute("job", new gen_bill());
 
         return "gen_bill";
     }
 
     /* =====================
-       SAVE BILL
+       SHOW GEN BILL PAGE (EDIT)
+       ===================== */
+    @GetMapping("/gen-bill/edit/{userId}/{contractNo}")
+    public String editGenBill(
+            @PathVariable Long userId,
+            @PathVariable Integer contractNo,   // ✅ FIXED
+            Model model,
+            Authentication authentication
+    ) {
+
+        CustomUserDetails userDetails =
+                (CustomUserDetails) authentication.getPrincipal();
+
+        // 🔐 Security check
+        if (!userDetails.getId().equals(userId)) {
+            return "redirect:/report";
+        }
+
+        gen_bill job = jobContractService
+                .getByUserIdAndContractNo(userId, contractNo); // ✅ FIXED
+
+        model.addAttribute("weavers",
+                weaverTraderService.getWeavers(userId));
+        model.addAttribute("traders",
+                weaverTraderService.getTraders(userId));
+
+        model.addAttribute("editMode", true);
+        model.addAttribute("job", job);
+
+        return "gen_bill";
+    }
+
+    /* =====================
+       SAVE / UPDATE BILL
        ===================== */
     @PostMapping(
             value = "/gen_bill",
@@ -60,23 +94,27 @@ public class JobContractController {
     )
     @ResponseBody
     public ResponseEntity<String> saveBill(
+
+            @RequestParam(required = false) Integer contractNo, // ✅ FIXED
+
             @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate contract_date,
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate contract_date,
+
             @RequestParam String weaver_name,
             @RequestParam String trader_name,
             @RequestParam String quality,
-            @RequestParam int quantity_meters,
+            @RequestParam Integer quantity_meters,
             @RequestParam Double job_rate,
-            @RequestParam int payment_days,
-            @RequestParam int beams,
+            @RequestParam Integer payment_days,
+            @RequestParam Integer beams,
             @RequestParam String production_schedule,
-            @RequestParam int no_of_machines,
+            @RequestParam Integer no_of_machines,
             @RequestParam(required = false) String remark,
             @RequestParam(required = false) String cut_length,
             @RequestParam(required = false) String minimum_delivery,
-            @RequestParam(required = false) String[] rolling_folding
-
-    ){
+            @RequestParam(required = false) String rolling_folding
+    ) {
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
@@ -85,46 +123,46 @@ public class JobContractController {
             !(authentication.getPrincipal() instanceof CustomUserDetails)) {
             return ResponseEntity.status(401).body("UNAUTHORIZED");
         }
-        
+
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
 
-       try {
-        User user = new User();
-        user.setId(userDetails.getId());
-        user.setName(userDetails.getName());
+        try {
+            User user = new User();
+            user.setId(userDetails.getId());
+            user.setName(userDetails.getName());
 
-        gen_bill bill = new gen_bill();
-        bill.setContractDate(contract_date);
-        bill.setWeaverName(weaver_name);
-        bill.setTraderName(trader_name);
-        bill.setBrokerName(userDetails.getName());
-        bill.setQuality(quality);
-        bill.setQuantityMeters(quantity_meters);
-        bill.setJobRate(job_rate);
-        bill.setPaymentDays(payment_days);
-        bill.setProductionSchedule(production_schedule);
-        bill.setNoOfMachines(no_of_machines);
-        bill.setRemark(remark);
-        bill.setBeams(beams);
-        String rollingFoldingValue = null;
-        if (rolling_folding != null) {
-            rollingFoldingValue = String.join(",", rolling_folding);
+            gen_bill bill = new gen_bill();
+
+            // 🔑 UPDATE CASE
+            if (contractNo != null) {
+                bill.setContractNo(contractNo);          // ✅ FIXED
+            }
+
+            bill.setUserId(user.getId());                // ✅ FIXED
+            bill.setContractDate(contract_date);
+            bill.setWeaverName(weaver_name);
+            bill.setTraderName(trader_name);
+            bill.setBrokerName(userDetails.getName());
+            bill.setQuality(quality);
+            bill.setQuantityMeters(quantity_meters);
+            bill.setJobRate(job_rate);
+            bill.setPaymentDays(payment_days);
+            bill.setProductionSchedule(production_schedule);
+            bill.setNoOfMachines(no_of_machines);
+            bill.setRemark(remark);
+            bill.setBeams(beams);
+            bill.setCutLength(cut_length);
+            bill.setMinimumDelivery(minimum_delivery);
+            bill.setRollingFolding(rolling_folding);
+
+            // 🔄 Same service handles save or update
+            jobContractService.saveOrUpdate(bill, user);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("ERROR");
         }
-
-        bill.setCutLength(cut_length);
-        bill.setMinimumDelivery(minimum_delivery);
-        bill.setRollingFolding(rollingFoldingValue);
-
-
-        // ✅ contract_no generated per user (MAX + 1)
-        jobContractService.saveJobContract(bill, user);
-        
-       }catch (Exception e) {
-    	   System.out.println(e);
-    	  
-		// TODO: handle exception
-	}
 
         return ResponseEntity.ok("SUCCESS");
     }

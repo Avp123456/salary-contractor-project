@@ -1,0 +1,37 @@
+1 Step -
+
+1.Quality Master
+
+Quality Search want. 
+
+63" 65/2*90 / 40 CBD* 40KW+20S
+
+2. DATE TOADY BY DEFULT.
+
+3. Contact Book Option at Mobile Number add in Weaver and Treder Master. and Owner Mobi.No. and Divanji Mobi.No.
+Weaver Brokerage % and Brokerage Paisa. 
+
+4. Like weaver + Button want to Treder and Quality
+
+5. Cr No eitable 
+
+6. Weaver want once not 2 time.
+
+7. After Quantity want combo Sizing / Fabric
+
+8. Report la Rate = ((Job Rate/100) * Pick) , Amount = (Rate * Quantity Mtr) , 
+Brokerage % Amt = Amount *  (Brokerage %/100)
+Brokerage Mtr Amt = Quantity Mtr *  (Brokerage Paisa./100)
+
+9. List la Edit and Delete option want.
+
+10. Report PDF and Excel.
+
+11. Cr Print PDF and Image
+
+
+
+
+
+
+

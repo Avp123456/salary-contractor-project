@@ -1,9 +1,7 @@
-<!-- cut length ,delivery fields, rolling/folding -->
-
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Generate Bill</title>
+    <title>Generate Job Contract</title>
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,97 +9,105 @@
     <!-- SweetAlert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <style>
-        body {
-            background: #f5f1e6;
-            font-family: "Times New Roman", serif;
-        }
+<style>
+    body {
+        font-family: "Times New Roman", serif;
+        background:
+            linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+            url("https://t3.ftcdn.net/jpg/16/23/08/86/240_F_1623088639_VM4EkuCvXjWV7qfyzIBr4e6GDzCeY3rA.jpg");
+        background-size: cover;
+        background-position: center;
+        min-height: 100vh;
+        margin: 0;
+    }
 
-        .bill-card {
-            background: #fffdf5;
-            border: 2px solid #333;
-            padding: 30px;
-            max-width: 900px;
-            margin: 30px auto;
-        }
+    .navbar {
+        background: linear-gradient(135deg, #1f2a30, #243840);
+        height: 80px;
+    }
 
-        .contract-header {
-            text-align: center;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
+    .navbar-brand {
+        font-weight: 600;
+        font-size: 25px;
+    }
 
-        label {
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
+    .nav-link {
+        margin: 0 14px;
+        font-size: 18px;
+        font-weight: 600;
+        color: #fff !important;
+    }
 
-        .form-control {
-            border: none;
-            border-bottom: 1px solid #000;
-            border-radius: 0;
-            background: transparent;
-        }
+    .bill-card {
+        background: rgba(255,255,255,0.95);
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 900px;
+        margin: 30px auto;
+    }
 
-        .section-box {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
+    .contract-header {
+        text-align: center;
+        border-bottom: 2px solid #333;
+        margin-bottom: 20px;
+    }
 
-        .btn-submit {
-            background: #333;
-            color: #fff;
-            font-weight: bold;
-        }
+    label {
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
 
-        #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 100%;
-            background: rgba(255,255,255,0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-    </style>
+    .form-control {
+        border: none;
+        border-bottom: 1px solid #000;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .section-box {
+        border: 1px solid #000;
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+
+    .btn-submit {
+        background: #333;
+        color: #fff;
+        font-weight: bold;
+    }
+
+    #loadingOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(255,255,255,0.9);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+</style>
 </head>
 
 <body>
-<nav class="navbar navbar-dark bg-dark px-3 d-flex justify-content-between">
 
-    <span class="navbar-brand">ShreeGuru Software Solutions welcome</span> <span class = "navbar-brand" th:text="${username}"> user </span>
-    
+<!-- NAVBAR -->
+<nav class="navbar navbar-dark px-3 d-flex justify-content-between">
+    <span class="navbar-brand">ShreeGuru Software Solutions</span>
+
     <div class="d-flex align-items-center">
-
-        <ul class="navbar-nav flex-row">
-        <li class="nav-item me-3">
-                <a class="nav-link text-white" href="/dashboard">Dashboard</a>
-            </li>
-            
-            <li class="nav-item">
-          		<a class="nav-link text-white" href="/weaver-trader">Weaver / Trader Master  </a>
-        	</li>
-            
-            <li class="nav-item me-3">
-                <a class="nav-link text-white" href="/report">Reports</a>
-            </li>
+        <ul class="navbar-nav flex-row align-items-center">
+            <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/weaver-trader">Weaver / Trader Master</a></li>
+            <li class="nav-item"><a class="nav-link" href="/report">Report</a></li>
         </ul>
 
-        <!-- Logout MUST be POST -->
-        <form action="/logout" method="post">
-    		<button class="btn btn-danger btn-sm">Logout</button>
-		</form>
-
-
+        <form action="/logout" method="post" class="ms-3">
+            <button class="btn btn-danger">Logout</button>
+        </form>
     </div>
 </nav>
 
-<!-- Loader -->
+<!-- LOADER -->
 <div id="loadingOverlay">
     <div class="text-center">
         <div class="spinner-border text-dark" style="width:4rem;height:4rem"></div>
@@ -109,136 +115,123 @@
     </div>
 </div>
 
+<!-- FORM -->
 <div class="bill-card">
 
     <div class="contract-header">
         <h4>Airjet Loom Owner's Association, Ichalkaranji</h4>
-        <small>JOB CONTRACT</small>
+        <small th:text="${editMode} ? 'EDIT JOB CONTRACT' : 'JOB CONTRACT'"></small>
     </div>
 
+    <!-- IMPORTANT: SAME ROUTE -->
     <form id="billForm">
-        <div class="row section-box">
-            <div class="col-md-4">
-                <label>Date</label>
-                <input type="date" class="form-control" name="contract_date" required>
-            </div>
+
+        <!-- REQUIRED FOR EDIT -->
+        <input type="hidden" name="userId" th:value="${job?.userId}">
+        <input type="hidden" name="contractNo" th:value="${job?.contractNo}">
+
+        <div class="section-box">
+            <label>Date</label>
+            <input type="date" class="form-control"
+                   name="contract_date"
+                   th:value="${job?.contractDate}">
         </div>
 
         <div class="section-box">
-    		<label class="d-flex justify-content-between align-items-center">Weaver
-    			<a href="/weaver-trader/create?returnUrl=/gen-bill" class="btn btn-sm btn-outline-dark ms-2">➕</a>
-			</label>
+            <label>Weaver</label>
+            <select class="form-control mb-2" name="weaver_name">
+                <option value="">Select Weaver</option>
+                <option th:each="w : ${weavers}"
+                        th:value="${w.name}"
+                        th:text="${w.name}"
+                        th:selected="${job?.weaverName == w.name}">
+                </option>
+            </select>
 
-			<select class="form-control mb-2" name="weaver_name" required>
-    			<option value="">Select Weaver</option>
-    				<option th:each="w : ${weavers}"
-            			th:value="${w.name}"
-            			th:text="${w.name}">
-    				</option>
-			</select>
+            <label>Trader</label>
+            <select class="form-control mb-2" name="trader_name">
+                <option value="">Select Trader</option>
+                <option th:each="t : ${traders}"
+                        th:value="${t.name}"
+                        th:text="${t.name}"
+                        th:selected="${job?.traderName == t.name}">
+                </option>
+            </select>
 
-
-    		<label>Trader</label>
-    		<select class="form-control mb-2" name="trader_name" required>
-        		<option value="">Select Trader</option>
-        		<option th:each="t : ${traders}"
-                	th:value="${t.name}"
-                	th:text="${t.name}">
-        		</option>
-    		</select>
-    		
-    		<label>
-        Broker :
-        <span th:text="${#authentication.principal.name}"></span>
-    </label>
-</div>
-
+            <label>Broker :
+                <span th:text="${#authentication.principal.name}"></span>
+            </label>
+        </div>
 
         <div class="section-box">
             <label>Quality</label>
-            <input class="form-control mb-2" name="quality">
+            <input class="form-control mb-2" name="quality"
+                   th:value="${job?.quality}">
 
             <label>Quantity (Meters)</label>
-            <input class="form-control mb-2" name="quantity_meters">
-            
-            <label>beam</label>
-            <input class="form-control mb-2" name="beams">
-            
+            <input class="form-control mb-2" name="quantity_meters"
+                   th:value="${job?.quantityMeters}">
+
+            <label>Beam</label>
+            <input class="form-control mb-2" name="beams"
+                   th:value="${job?.beams}">
         </div>
 
         <div class="section-box">
             <label>Job Rate</label>
-            <input class="form-control mb-2" name="job_rate">
+            <input class="form-control mb-2" name="job_rate"
+                   th:value="${job?.jobRate}">
 
             <label>Payment Days</label>
-            <input class="form-control mb-2" name="payment_days">
+            <input class="form-control mb-2" name="payment_days"
+                   th:value="${job?.paymentDays}">
         </div>
 
         <div class="section-box">
             <label>Production Schedule</label>
-            <input class="form-control mb-2" name="production_schedule">
+            <input class="form-control mb-2" name="production_schedule"
+                   th:value="${job?.productionSchedule}">
 
             <label>No of Machines</label>
-            <input class="form-control mb-2" name="no_of_machines">
+            <input class="form-control mb-2" name="no_of_machines"
+                   th:value="${job?.noOfMachines}">
         </div>
 
         <div class="section-box">
             <label>Remark</label>
-            <input class="form-control" name="remark">
+            <input class="form-control" name="remark"
+                   th:value="${job?.remark}">
         </div>
+
         <div class="section-box">
-    <label>Cut Length</label>
-    <input class="form-control mb-2" name="cut_length">
+            <label>Cut Length</label>
+            <input class="form-control mb-2" name="cut_length"
+                   th:value="${job?.cutLength}">
 
-    <label>Minimum Delivery</label>
-    <input class="form-control mb-2" name="minimum_delivery">
+            <label>Minimum Delivery</label>
+            <input class="form-control mb-2" name="minimum_delivery"
+                   th:value="${job?.minimumDelivery}">
 
-    <label>Rolling / Folding</label>
-    <div class="form-check">
-    <input class="form-check-input" type="radio"
-           name="rolling_folding" value="ROLLING" id="rolling">
-    <label class="form-check-label" for="rolling">
-        Rolling
-    </label>
-</div>
+            <label>Rolling / Folding</label>
+            <div class="form-check">
+                <input class="form-check-input" type="radio"
+                       name="rolling_folding" value="ROLLING"
+                       th:checked="${job?.rollingFolding == 'ROLLING'}">
+                <label class="form-check-label">Rolling</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio"
+                       name="rolling_folding" value="FOLDING"
+                       th:checked="${job?.rollingFolding == 'FOLDING'}">
+                <label class="form-check-label">Folding</label>
+            </div>
+        </div>
 
-<div class="form-check">
-    <input class="form-check-input" type="radio"
-           name="rolling_folding" value="FOLDING" id="folding">
-    <label class="form-check-label" for="folding">
-        Folding
-    </label>
-</div>
-
-</div>
-        
-
-        <button type="submit" id="submitBtn" class="btn btn-submit w-100 mt-3">
-            SUBMIT
-        </button>
-
-        <button type="button" class="btn btn-outline-dark w-100 mt-2"
-                data-bs-toggle="modal" data-bs-target="#previewModal"
-                onclick="loadPreview()">
-            Generate Bill
+        <button type="submit" id="submitBtn" class="btn btn-submit w-100 mt-3"
+                th:text="${editMode} ? 'UPDATE CONTRACT' : 'SUBMIT'">
         </button>
 
     </form>
-</div>
-
-<!-- Preview Modal -->
-<div class="modal fade" id="previewModal">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5>Bill Preview</h5>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <pre id="previewContent"></pre>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -251,29 +244,18 @@
     form.addEventListener("submit", function (e) {
         e.preventDefault();
 
-        if (!form.checkValidity()) {
-            Swal.fire("Validation Error", "Please fill required fields", "error");
-            return;
-        }
-
         submitBtn.disabled = true;
         loader.style.display = "flex";
 
-        const formData = new URLSearchParams(new FormData(form));
-
         fetch("/gen_bill", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: formData
+            body: new URLSearchParams(new FormData(form))
         })
-        .then(res => res.text())
         .then(() => {
             loader.style.display = "none";
             submitBtn.disabled = false;
-            Swal.fire("Success", "Job contract created successfully", "success");
-            form.reset();
+            Swal.fire("Success", "Job contract saved successfully", "success")
+                .then(() => window.location.href = "/dashboard");
         })
         .catch(() => {
             loader.style.display = "none";
@@ -281,15 +263,6 @@
             Swal.fire("Error", "Server error occurred", "error");
         });
     });
-
-    function loadPreview() {
-        const formData = new FormData(form);
-        let preview = "";
-        for (let [k, v] of formData.entries()) {
-            preview += `${k.replaceAll("_"," ").toUpperCase()} : ${v}\n`;
-        }
-        document.getElementById("previewContent").innerText = preview;
-    }
 </script>
 
 </body>

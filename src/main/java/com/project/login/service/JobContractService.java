@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+
 @Service
 public class JobContractService {
 
@@ -18,16 +19,64 @@ public class JobContractService {
     }
 
     /* ==========================
-       SAVE JOB CONTRACT
-       (USER-WISE AUTO INCREMENT)
+       FIND (EDIT / DELETE)
+       ========================== */
+    public gen_bill getByUserIdAndContractNo(
+            Long userId,
+            Integer contractNo
+    ) {
+        return jobContractRepository
+                .findByUserIdAndContractNo(userId, contractNo)
+                .orElseThrow(() -> new RuntimeException("Record not found"));
+    }
+
+    /* ==========================
+       DELETE
+       ========================== */
+    public void deleteByUserIdAndContractNo(
+            Long userId,
+            Integer contractNo
+    ) {
+        gen_bill jobContract = getByUserIdAndContractNo(userId, contractNo);
+        jobContractRepository.delete(jobContract);
+    }
+
+    /* ==========================
+       SAVE OR UPDATE
+       ========================== */
+    @Transactional
+    public gen_bill saveOrUpdate(gen_bill bill, User user) {
+
+        // always bind user
+        bill.setUserId(user.getId());
+
+        // 🔹 CREATE
+        if (bill.getContractNo() == null) {
+            bill.setContractNo(generateContractNo(user.getId()));
+            bill.setSrNo(generateSrNo(user.getId()));
+        }
+        // 🔹 UPDATE
+        else {
+            gen_bill existing = getByUserIdAndContractNo(
+                    user.getId(),
+                    bill.getContractNo()
+            );
+
+            // preserve immutable fields
+            bill.setId(existing.getId());
+            bill.setSrNo(existing.getSrNo());
+        }
+
+        return jobContractRepository.save(bill);
+    }
+
+    /* ==========================
+       LEGACY SAVE (KEEP)
        ========================== */
     @Transactional
     public gen_bill saveJobContract(gen_bill jobContract, User user) {
 
-        // ✅ gen_bill has userId, not User object
         jobContract.setUserId(user.getId());
-
-        // ✅ AUTO INCREMENT CONTRACT NO (USER BASIS)
         jobContract.setContractNo(generateContractNo(user.getId()));
         jobContract.setSrNo(generateSrNo(user.getId()));
 
@@ -35,19 +84,24 @@ public class JobContractService {
     }
 
     /* ==========================
+       LEGACY UPDATE (KEEP)
+       ========================== */
+    public void updateJobContract(gen_bill bill) {
+        jobContractRepository.save(bill);
+    }
+
+    /* ==========================
        REPORT + EXCEL SEARCH
-       (USER-ID BASED)
        ========================== */
     public List<gen_bill> searchReportsByUser(
-            String userId,
+            String userName,
             String weaverName,
             String traderName,
             LocalDate fromDate,
             LocalDate toDate
     ) {
-
         return jobContractRepository.searchReports(
-                userId,
+                userName,
                 (weaverName == null || weaverName.isBlank())
                         ? null : "%" + weaverName + "%",
                 (traderName == null || traderName.isBlank())
@@ -60,17 +114,15 @@ public class JobContractService {
     /* ==========================
        CONTRACT NO GENERATOR
        ========================== */
-    private Integer generateContractNo (Long userId) {
-
+    private Integer generateContractNo(Long userId) {
         Integer maxContractNo =
                 jobContractRepository.findMaxContractNoByUser(userId);
-
         return maxContractNo + 1;
     }
-    
-    private Integer generateSrNo(Long userId) {
-    	Integer maxSrNo = jobContractRepository.findMaxSrNoByUser(userId);
-    	return maxSrNo + 1;
-    }
 
+    private Integer generateSrNo(Long userId) {
+        Integer maxSrNo =
+                jobContractRepository.findMaxSrNoByUser(userId);
+        return maxSrNo + 1;
+    }
 }

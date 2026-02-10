@@ -29,6 +29,8 @@ public class SecurityConfig {
                         "/",
                         "/login",
                         "/register",
+                        "/send-register-otp",      // ✅ ADDED
+                        "/verify-register-otp",    // ✅ ADDED
                         "/css/**",
                         "/js/**",
                         "/images/**",

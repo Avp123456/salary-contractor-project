@@ -1,48 +1,271 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Register</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>Register</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+/* ---------- GLOBAL ---------- */
+body {
+  margin: 0;
+  height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+    url("https://t4.ftcdn.net/jpg/17/42/93/47/240_F_1742934729_zZy9JHoPHwI1G7xBOGUdAE47A9N6zarS.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+/* ---------- WRAPPER ---------- */
+.login-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ---------- TITLE ---------- */
+.welcome-title {
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+/* ---------- CARD ---------- */
+.login-card {
+  width: 420px;
+  padding: 36px 34px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+  animation: fadeUp 0.5s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.login-card h3 {
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 26px;
+  color: #1f2933;
+}
+
+/* ---------- INPUTS ---------- */
+.form-control {
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 15px;
+}
+
+.form-control:focus {
+  border-color: #39d98a;
+  box-shadow: 0 0 0 0.15rem rgba(57,217,138,0.25);
+}
+
+/* ---------- BUTTON ---------- */
+.btn-main {
+  background: #39d98a;
+  border: none;
+  color: #000;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
+}
+
+.btn-main:hover {
+  background: #2ecf7f;
+}
+
+/* ---------- PASSWORD TOGGLE ---------- */
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+/* ---------- OTP BOXES ---------- */
+.otp-boxes {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.otp-boxes input {
+  width: 48px;
+  height: 48px;
+  text-align: center;
+  font-size: 18px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  transition: all 0.2s ease;
+}
+
+.otp-boxes input:focus {
+  border-color: #39d98a;
+  box-shadow: 0 0 0 0.15rem rgba(57,217,138,0.25);
+  transform: scale(1.05);
+}
+
+/* ---------- TIMER & RESEND ---------- */
+.otp-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.resend-btn {
+  background: none;
+  border: none;
+  color: #39d98a;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.resend-btn:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* ---------- LINKS ---------- */
+.login-links {
+  font-size: 13px;
+  margin-top: 18px;
+  text-align: center;
+}
+.login-links a {
+  color: #39d98a;
+  text-decoration: none;
+  font-weight: 600;
+}
+</style>
 </head>
-<body class="bg-light">
 
-<div class="container mt-5">
-    <div class="card shadow col-md-5 mx-auto">
-        <div class="card-body">
-            <h3 class="text-center mb-4">Register</h3>
+<body>
 
-            <form th:action="@{/register}" method="post" th:object="${user}">
+<div class="login-wrapper">
+  <div class="welcome-title">Create Account</div>
 
-                <input class="form-control mb-3"
-                       th:field="*{name}"
-                       placeholder="Name"
-                       required>
+  <div class="login-card">
+    <h3>Register</h3>
 
-                <input class="form-control mb-3"
-                       th:field="*{email}"
-                       type="email"
-                       placeholder="Email"
-                       required>
+    <!-- SEND OTP -->
+    <form th:action="@{/send-register-otp}" method="post">
 
-                <input class="form-control mb-3"
-                       th:field="*{password}"
-                       type="password"
-                       placeholder="Password"
-                       required>
+      <input class="form-control mb-3" name="name" placeholder="Full Name" required>
 
-                <button type="submit" class="btn btn-success w-100">
-                    Register
-                </button>
-            </form>
+      <input class="form-control mb-3" type="email" name="email"
+             placeholder="Email address" required>
 
-            <p class="text-center mt-3">
-                Already have an account?
-                <a href="/">Login</a>
-            </p>
+      <div class="position-relative mb-3">
+        <input class="form-control" type="password"
+               name="password" id="password"
+               placeholder="Password" required>
+        <span class="password-toggle" onclick="togglePassword()">👁</span>
+      </div>
 
+      <button type="submit" class="btn btn-main w-100">Send OTP</button>
+    </form>
+
+    <!-- VERIFY OTP -->
+    <div th:if="${otpSent}" class="mt-4">
+
+      <form th:action="@{/verify-register-otp}" method="post" onsubmit="combineOtp()">
+
+        <div class="otp-boxes">
+          <input maxlength="1" class="otp" oninput="moveNext(this,0)">
+          <input maxlength="1" class="otp" oninput="moveNext(this,1)">
+          <input maxlength="1" class="otp" oninput="moveNext(this,2)">
+          <input maxlength="1" class="otp" oninput="moveNext(this,3)">
+          <input maxlength="1" class="otp" oninput="moveNext(this,4)">
+          <input maxlength="1" class="otp" oninput="moveNext(this,5)">
         </div>
+
+        <input type="hidden" name="otp" id="otp">
+
+        <div class="otp-footer">
+          <span id="timer">01:00</span>
+          <button type="button" id="resendBtn"
+                  class="resend-btn" disabled>
+            Resend OTP
+          </button>
+        </div>
+
+        <button type="submit" class="btn btn-main w-100">
+          Verify OTP & Register
+        </button>
+      </form>
     </div>
+
+    <div th:if="${error}" class="alert alert-danger mt-3"
+         th:text="${error}"></div>
+
+    <div class="login-links">
+      Already have an account?
+      <a href="/">Login</a>
+    </div>
+
+  </div>
 </div>
+
+<script>
+/* PASSWORD TOGGLE */
+function togglePassword() {
+  const p = document.getElementById("password");
+  p.type = p.type === "password" ? "text" : "password";
+}
+
+/* OTP AUTO MOVE */
+function moveNext(el, index) {
+  if (el.value.length === 1) {
+    const next = document.querySelectorAll(".otp")[index + 1];
+    if (next) next.focus();
+  }
+}
+
+/* COMBINE OTP */
+function combineOtp() {
+  let otp = "";
+  document.querySelectorAll(".otp").forEach(i => otp += i.value);
+  document.getElementById("otp").value = otp;
+}
+
+/* TIMER */
+let time = 60;
+const timerEl = document.getElementById("timer");
+const resendBtn = document.getElementById("resendBtn");
+
+const interval = setInterval(() => {
+  if (time <= 0) {
+    clearInterval(interval);
+    resendBtn.disabled = false;
+    timerEl.textContent = "00:00";
+    return;
+  }
+  time--;
+  const min = String(Math.floor(time / 60)).padStart(2,'0');
+  const sec = String(time % 60).padStart(2,'0');
+  timerEl.textContent = `${min}:${sec}`;
+}, 1000);
+</script>
 
 </body>
 </html>

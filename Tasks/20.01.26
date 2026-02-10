@@ -1,10 +1,4 @@
 20/01/21
-
 2. weaver and treader should be addedd from creat job_contract form
-3. generate bill button change name to 'save'
-4. on click on save button in gen_contract it will ask do you want to save ? yes/no
-5. need edit/delete button on report for each record
-6. when cliked on edit it will redirect to gen_contract form with that data and buttons on gen_contract form should be update/cancle.
 7. on report form export to excel, export to pdf for whole report. buttons want
-8. for each row on report edit(pop up want), delete(pop up want), download image(pop up want), download pfd(pop up want),
-   send to whastapp image(pop up want) want this buttons (creates one col at last to each record and add these buttons)
+8. for each record in report download image(pop up want), download pfd(pop up want),send to whastapp image(pop up want) want this buttons (creates one col at last to each record and add these buttons)
