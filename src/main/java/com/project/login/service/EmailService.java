@@ -19,7 +19,7 @@ public class EmailService {
         message.setText(
                 "Your OTP for registration is: " + otp +
                 "\n\nThis OTP is valid for 5 minutes." + 
-                "\n\nThis is system generated mail do not replay it."
+                "\n\nThis is system generated mail do not replay ."
         );
 
         mailSender.send(message);
