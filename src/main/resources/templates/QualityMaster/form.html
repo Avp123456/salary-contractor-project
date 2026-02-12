@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quality Master</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background:
+        linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+        url("https://t4.ftcdn.net/jpg/03/10/16/27/240_F_310162798_6hWbaSFgDtWp4AhhaKPlTgAZUDL1c4UY.jpg");
+    background-size: cover;
+}
+
+.navbar {
+    background: linear-gradient(135deg, #343a40, #1f2933);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    height: 80px;
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 25px;
+}
+
+.form-card {
+    max-width: 950px;
+    margin: 60px auto;
+    padding: 38px 42px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 18px 35px rgba(0,0,0,0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #243840;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.readonly-field {
+    background: #fff3cd;
+}
+</style>
+</head>
+
+<body>
+
+<nav class="navbar navbar-dark px-3">
+    <span class="navbar-brand">ShreeGuru Software Solutions</span>
+</nav>
+
+<div class="form-card">
+
+<h3 class="text-center mb-4">Quality Master</h3>
+
+<form th:action="@{/quality/save}" method="post" th:object="${quality}">
+
+<div class="row g-3 align-items-end">
+
+    <div class="col-md-2">
+        <label class="form-label">Width</label>
+        <input type="text" class="form-control" th:field="*{width}" id="width">
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Reed</label> 
+        <input type="text" class="form-control" th:field="*{reed}" id="reed">
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Pick</label>
+        <input type="text" class="form-control" th:field="*{pick}" id="pick">
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Warp</label>
+        <input type="text" class="form-control" th:field="*{warp}" id="warp">
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Weft</label>
+        <input type="text" class="form-control" th:field="*{weft}" id="weft">
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label">Reed Space</label>
+        <input type="text" class="form-control" th:field="*{reedSpace}" id="reedSpace">
+    </div>
+
+    <div class="col-md-2 mt-3">
+        <label class="form-label">Weave</label>
+        <input type="text" class="form-control" th:field="*{weave}" id="weave">
+        
+    </div>
+
+</div>
+
+<hr class="my-4">
+
+<div class="mb-3">
+    <label class="form-label">Quality Name</label>
+    <input type="text" class="form-control readonly-field" th:field= "*{qulity_Name}" id="qualityName" readonly>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Alias</label>
+    <input type="text" class="form-control readonly-field" id="alias" th:field="*{alias}" readonly>
+</div>
+
+<div class="text-center">
+    <button type="submit" class="btn btn-success px-4">Save</button>
+</div>
+
+</form>
+
+</div>
+
+<script>
+const inputs = ["warp","weft","reed","pick","width","weave"];
+
+inputs.forEach(id => {
+    document.getElementById(id).addEventListener("input", generateQuality);
+});
+
+function generateQuality() {
+
+    let warp = document.getElementById("warp").value || "";
+    let weft = document.getElementById("weft").value || "";
+    let reed = document.getElementById("reed").value || "";
+    let pick = document.getElementById("pick").value || "";
+    let width = document.getElementById("width").value || "";
+    let weave = document.getElementById("weave").value || "";
+
+    if(warp && weft && reed && pick && width){
+
+        let quality = `${warp}*${weft} / ${reed} * ${pick} / ${width}" - ${weave}`;
+
+        document.getElementById("qualityName").value = quality;
+        document.getElementById("alias").value = quality;
+    }
+}
+</script>
+
+</body>
+</html>
