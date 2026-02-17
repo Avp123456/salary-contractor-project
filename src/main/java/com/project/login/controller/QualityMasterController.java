@@ -18,12 +18,9 @@ public class QualityMasterController {
         this.service = service;
     }
 
-    // ✅ LIST
     @GetMapping
     public String list(Model model, Authentication authentication) {
-
-        System.out.println("Page Visited: quality");
-
+    	System.out.println("Page Visited: Quality Master");
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
 
@@ -34,23 +31,19 @@ public class QualityMasterController {
         return "QualityMaster/list";
     }
 
-    // ✅ CREATE FORM
     @GetMapping("/create")
     public String createForm(Model model) {
-
-        System.out.println("Page Visited: create quality");
+    	System.out.println("Button Clicked: create(quality master)");
 
         model.addAttribute("quality", new QualityMasterEntity());
 
         return "QualityMaster/form";
     }
 
-    // ✅ SAVE
     @PostMapping("/save")
     public String save(@ModelAttribute QualityMasterEntity quality,
                        Authentication authentication) {
-
-        System.out.println("Button clicked: Save Quality");
+    	System.out.println("Button Clicked: save(quality master)");
 
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
@@ -62,13 +55,11 @@ public class QualityMasterController {
         return "redirect:/quality";
     }
 
-    // ✅ EDIT
     @GetMapping("/edit/{id}")
     public String editForm(@PathVariable Long id,
                            Model model,
                            Authentication authentication) {
-
-        System.out.println("Button clicked: Edit Quality");
+    	System.out.println("Button Clicked: edit(quality master)");
 
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
@@ -83,10 +74,10 @@ public class QualityMasterController {
         return "QualityMaster/form";
     }
 
-    // ✅ DELETE
     @PostMapping("/delete/{id}")
     public String delete(@PathVariable Long id,
                          Authentication authentication) {
+    	System.out.println("Button Clicked: delete(quality master)");
 
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
