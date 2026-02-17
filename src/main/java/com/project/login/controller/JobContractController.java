@@ -5,6 +5,7 @@ package com.project.login.controller;
 import com.project.login.entity.User;
 import com.project.login.entity.gen_bill;
 import com.project.login.service.JobContractService;
+import com.project.login.service.QualityMasterService;
 import com.project.login.service.WeaverTraderService;
 import com.project.security.CustomUserDetails;
 
@@ -21,12 +22,15 @@ import java.time.LocalDate;
 @Controller
 public class JobContractController {
 
+	private final QualityMasterService qulitymasterMasterService;
     private final JobContractService jobContractService;
     private final WeaverTraderService weaverTraderService;
+    
 
     public JobContractController(JobContractService jobContractService,
-                                 WeaverTraderService weaverTraderService) {
-        this.jobContractService = jobContractService;
+                                 WeaverTraderService weaverTraderService, QualityMasterService qulitymasterMasterService ) {
+        this.qulitymasterMasterService = qulitymasterMasterService;
+		this.jobContractService = jobContractService;
         this.weaverTraderService = weaverTraderService;
     }
 
@@ -41,10 +45,9 @@ public class JobContractController {
 
         Long userId = userDetails.getId();
 
-        model.addAttribute("weavers",
-                weaverTraderService.getWeavers(userId));
-        model.addAttribute("traders",
-                weaverTraderService.getTraders(userId));
+        model.addAttribute("weavers", weaverTraderService.getWeavers(userId));
+        model.addAttribute("traders", weaverTraderService.getTraders(userId));
+        model.addAttribute("quality", qulitymasterMasterService.findByUser(userId));
 
         model.addAttribute("editMode", false);
         model.addAttribute("job", new gen_bill());
@@ -74,10 +77,9 @@ public class JobContractController {
         gen_bill job = jobContractService
                 .getByUserIdAndContractNo(userId, contractNo); // ✅ FIXED
 
-        model.addAttribute("weavers",
-                weaverTraderService.getWeavers(userId));
-        model.addAttribute("traders",
-                weaverTraderService.getTraders(userId));
+        model.addAttribute("weavers", weaverTraderService.getWeavers(userId));
+        model.addAttribute("traders", weaverTraderService.getTraders(userId));
+        model.addAttribute("quality", qulitymasterMasterService.findByUser(userId));
 
         model.addAttribute("editMode", true);
         model.addAttribute("job", job);

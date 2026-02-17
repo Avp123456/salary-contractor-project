@@ -171,8 +171,14 @@
         <div class="section-box">
             <label>Quality</label>
             <button type="button" id="	" class="btn btn-success"data-bs-toggle="modal"data-bs-target="#addWeaverModal"> + </button>
-            <input class="form-control mb-2" name="quality"
-                   th:value="${job?.quality}">
+             <select class="form-control mb-2" name="quality">
+                <option value="">Select Quality</option>
+                <option th:each="t : ${quality}"
+                        th:value="${t.qualityName}"
+                        th:text="${t.qualityName}"
+                        th:selected="${job?.quality == t.qualityName}">
+                </option>
+            </select>
 
             <label>Quantity (Meters)</label>
              <input class="form-control mb-2" name="quantity_meters"

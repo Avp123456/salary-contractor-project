@@ -4,3 +4,9 @@
 5. need edit/delete button on report for each record
 6. when cliked on edit it will redirect to gen_contract form with that data and buttons on gen_contract form should be update/cancle.
 8. for each row on report edit(pop up want), delete(pop up want)
+
+
+1.Quality Master
+63" 65/2*90 / 40 CBD* 40KW+20S
+6. Weaver want once not 2 time.
+9. List la Edit and Delete option want.
