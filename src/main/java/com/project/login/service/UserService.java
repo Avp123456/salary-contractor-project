@@ -19,8 +19,12 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public void saveUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        repo.save(user);
+    	System.out.println("saveuser method hit");
+    	System.out.println("Before Encode: " + user.getPassword());
+    	String password = passwordEncoder.encode(user.getPassword());
+    	System.out.println("After Encode: " + password);
+    	user.setPassword(password);
+    	repo.save(user);
     }
 
     // ❌ DO NOT use manual authentication with Spring Security

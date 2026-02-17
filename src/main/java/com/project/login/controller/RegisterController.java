@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.project.login.entity.User;
-import com.project.login.repository.UserRepository;
 import com.project.login.service.OtpService;
+import com.project.login.service.UserService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -19,29 +19,34 @@ public class RegisterController {
     private OtpService otpService;
 
     @Autowired
-    private UserRepository userRepo;
+    private UserService userService;   // ✅ Use service instead of repository
 
-    /* STEP 1: Send OTP */
+    /* ===============================
+       STEP 1: Send OTP
+    =============================== */
     @PostMapping("/send-register-otp")
     public String sendOtp(HttpSession session,
                           @RequestParam String name,
                           @RequestParam String email,
                           @RequestParam String password,
                           Model model) {
-    	    System.out.println("SEND OTP CONTROLLER HIT");
 
-        // store user data temporarily in session
+        System.out.println("SEND OTP CONTROLLER HIT");
+
+        // Store user data temporarily in session
         session.setAttribute("REG_NAME", name);
         session.setAttribute("REG_EMAIL", email);
         session.setAttribute("REG_PASSWORD", password);
 
         otpService.sendOtp(email);
 
-        model.addAttribute("otpSent", true); // ✅ REQUIRED
-        return "register"; // stay on register page
+        model.addAttribute("otpSent", true);
+        return "register"; // Stay on register page
     }
 
-    /* STEP 2: Verify OTP and Save User */
+    /* ===============================
+       STEP 2: Verify OTP & Save User
+    =============================== */
     @PostMapping("/verify-register-otp")
     public String verifyOtp(@RequestParam String otp,
                             HttpSession session,
@@ -56,21 +61,29 @@ public class RegisterController {
         boolean valid = otpService.verifyOtp(email, otp);
 
         if (!valid) {
-            model.addAttribute("otpSent", true); // keep OTP box visible
+            model.addAttribute("otpSent", true);
             model.addAttribute("error", "Invalid or expired OTP");
             return "register";
         }
 
-        // OTP verified → save user
+        // ✅ CHECK IF EMAIL ALREADY EXISTS
+        if (userService.findByEmail(email).isPresent()) {
+            model.addAttribute("otpSent", false);
+            model.addAttribute("error", "Email already exists. Please login.");
+            return "register";
+        }
+
+        // Create user
         User user = new User();
         user.setName((String) session.getAttribute("REG_NAME"));
         user.setEmail(email);
         user.setPassword((String) session.getAttribute("REG_PASSWORD"));
 
-        userRepo.save(user);
+        userService.saveUser(user);
 
-        session.invalidate(); // clear temp data
+        session.invalidate();
 
-        return "redirect:/"; // login page
+        return "redirect:/";
     }
+
 }

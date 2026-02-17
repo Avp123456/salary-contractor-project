@@ -140,6 +140,7 @@
 
         <div class="section-box">
             <label>Weaver</label>
+             <button type="button" class="btn btn-success"data-bs-toggle="modal"data-bs-target="#addWeaverModal"> + </button>
             <select class="form-control mb-2" name="weaver_name">
                 <option value="">Select Weaver</option>
                 <option th:each="w : ${weavers}"
@@ -148,8 +149,11 @@
                         th:selected="${job?.weaverName == w.name}">
                 </option>
             </select>
-
+ 
+		</div>
+		<div class="section-box">
             <label>Trader</label>
+            <button type="button" class="btn btn-success"data-bs-toggle="modal"data-bs-target="#addWeaverModal"> + </button>
             <select class="form-control mb-2" name="trader_name">
                 <option value="">Select Trader</option>
                 <option th:each="t : ${traders}"
@@ -166,11 +170,12 @@
 
         <div class="section-box">
             <label>Quality</label>
+            <button type="button" id="	" class="btn btn-success"data-bs-toggle="modal"data-bs-target="#addWeaverModal"> + </button>
             <input class="form-control mb-2" name="quality"
                    th:value="${job?.quality}">
 
             <label>Quantity (Meters)</label>
-            <input class="form-control mb-2" name="quantity_meters"
+             <input class="form-control mb-2" name="quantity_meters"
                    th:value="${job?.quantityMeters}">
 
             <label>Beam</label>
