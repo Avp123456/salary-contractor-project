@@ -20,15 +20,10 @@ public class UserService {
 
     public void saveUser(User user) {
     	System.out.println("saveuser method hit");
-    	System.out.println("Before Encode: " + user.getPassword());
     	String password = passwordEncoder.encode(user.getPassword());
-    	System.out.println("After Encode: " + password);
     	user.setPassword(password);
     	repo.save(user);
     }
-
-    // ❌ DO NOT use manual authentication with Spring Security
-    // ✅ Keep this method only if needed elsewhere (fixed & safe)
     public Optional<User> findByEmail(String email) {
         return repo.findByEmail(email);
     }
