@@ -6,6 +6,9 @@
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <!-- Select2 CSS (SEARCH DROPDOWN) -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
     <!-- SweetAlert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -85,6 +88,11 @@
         justify-content: center;
         z-index: 9999;
     }
+
+    /* Select2 full width */
+    .select2-container {
+        width: 100% !important;
+    }
 </style>
 </head>
 
@@ -124,24 +132,21 @@
         <small th:text="${editMode} ? 'EDIT JOB CONTRACT' : 'JOB CONTRACT'"></small>
     </div>
 
-    <!-- IMPORTANT: SAME ROUTE -->
     <form id="billForm">
 
-        <!-- REQUIRED FOR EDIT -->
         <input type="hidden" name="userId" th:value="${job?.userId}">
         <input type="hidden" name="contractNo" th:value="${job?.contractNo}">
 
+        <!-- Date -->
         <div class="section-box">
             <label>Date</label>
-            <input type="date" class="form-control"
-                   name="contract_date"
-                   th:value="${job?.contractDate}">
+            <input type="date" class="form-control" id="contractDate" name="contract_date">
         </div>
 
+        <!-- Weaver -->
         <div class="section-box">
             <label>Weaver</label>
-             <button type="button" class="btn btn-success"data-bs-toggle="modal"data-bs-target="#addWeaverModal"> + </button>
-            <select class="form-control mb-2" name="weaver_name">
+            <select class="form-control searchable" name="weaver_name">
                 <option value="">Select Weaver</option>
                 <option th:each="w : ${weavers}"
                         th:value="${w.name}"
@@ -149,12 +154,12 @@
                         th:selected="${job?.weaverName == w.name}">
                 </option>
             </select>
- 
-		</div>
-		<div class="section-box">
+        </div>
+
+        <!-- Trader -->
+        <div class="section-box">
             <label>Trader</label>
-            <button type="button" class="btn btn-success"data-bs-toggle="modal"data-bs-target="#addWeaverModal"> + </button>
-            <select class="form-control mb-2" name="trader_name">
+            <select class="form-control searchable" name="trader_name">
                 <option value="">Select Trader</option>
                 <option th:each="t : ${traders}"
                         th:value="${t.name}"
@@ -163,25 +168,25 @@
                 </option>
             </select>
 
-            <label>Broker :
+            <label class="mt-2">Broker :
                 <span th:text="${#authentication.principal.name}"></span>
             </label>
         </div>
 
+        <!-- Quality -->
         <div class="section-box">
             <label>Quality</label>
-            <button type="button" id="	" class="btn btn-success"data-bs-toggle="modal"data-bs-target="#addWeaverModal"> + </button>
-             <select class="form-control mb-2" name="quality">
+            <select class="form-control searchable" name="quality">
                 <option value="">Select Quality</option>
-                <option th:each="t : ${quality}"
-                        th:value="${t.qualityName}"
-                        th:text="${t.qualityName}"
-                        th:selected="${job?.quality == t.qualityName}">
+                <option th:each="q : ${quality}"
+                        th:value="${q.qualityName}"
+                        th:text="${q.qualityName}"
+                        th:selected="${job?.quality == q.qualityName}">
                 </option>
             </select>
 
             <label>Quantity (Meters)</label>
-             <input class="form-control mb-2" name="quantity_meters"
+            <input class="form-control mb-2" name="quantity_meters"
                    th:value="${job?.quantityMeters}">
 
             <label>Beam</label>
@@ -189,6 +194,7 @@
                    th:value="${job?.beams}">
         </div>
 
+        <!-- Job Details -->
         <div class="section-box">
             <label>Job Rate</label>
             <input class="form-control mb-2" name="job_rate"
@@ -199,6 +205,7 @@
                    th:value="${job?.paymentDays}">
         </div>
 
+        <!-- Production -->
         <div class="section-box">
             <label>Production Schedule</label>
             <input class="form-control mb-2" name="production_schedule"
@@ -209,12 +216,14 @@
                    th:value="${job?.noOfMachines}">
         </div>
 
+        <!-- Remark -->
         <div class="section-box">
             <label>Remark</label>
             <input class="form-control" name="remark"
                    th:value="${job?.remark}">
         </div>
 
+        <!-- Delivery -->
         <div class="section-box">
             <label>Cut Length</label>
             <input class="form-control mb-2" name="cut_length"
@@ -225,12 +234,14 @@
                    th:value="${job?.minimumDelivery}">
 
             <label>Rolling / Folding</label>
+
             <div class="form-check">
                 <input class="form-check-input" type="radio"
                        name="rolling_folding" value="ROLLING"
                        th:checked="${job?.rollingFolding == 'ROLLING'}">
                 <label class="form-check-label">Rolling</label>
             </div>
+
             <div class="form-check">
                 <input class="form-check-input" type="radio"
                        name="rolling_folding" value="FOLDING"
@@ -246,9 +257,31 @@
     </form>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+    // Set today's date
+    document.addEventListener("DOMContentLoaded", function () {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        document.getElementById("contractDate").value = `${year}-${month}-${day}`;
+    });
+
+    // Enable search dropdown
+    $(document).ready(function() {
+        $('.searchable').select2({
+            placeholder: "Search here...",
+            allowClear: true
+        });
+    });
+
+    // Submit logic
     const form = document.getElementById("billForm");
     const loader = document.getElementById("loadingOverlay");
     const submitBtn = document.getElementById("submitBtn");

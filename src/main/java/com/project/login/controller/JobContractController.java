@@ -51,6 +51,11 @@ public class JobContractController {
 
         model.addAttribute("editMode", false);
         model.addAttribute("job", new gen_bill());
+        
+        gen_bill job = new gen_bill();
+        job.setContractDate(java.time.LocalDate.now());   // ✅ Set today's date
+
+        model.addAttribute("job", job);
 
         return "gen_bill";
     }
