@@ -1,0 +1,6 @@
+***how to set autoincrement user wise (For contract_no nad sr_no):-
+1. in repository add query to find the max contract_no. and create method 
+2. in service add one method to generate contract no.(findmaxcontractnobyuser)
+3. in service set the contract_no by above created method
+4. in entity we must have set method for contract_no.
+5. in this way we can set auto increment. here we can't use controller and html.

@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-
 @Controller
 public class AuthController {
 
@@ -21,53 +20,56 @@ public class AuthController {
 
     @GetMapping("/")
     public String loginPage() {
-    	System.out.println("Page Visited: " + "Login");
         return "login";
     }
 
-    // Avoid direct GET /login
     @GetMapping("/login")
     public String loginRedirect() {
-    	System.out.println("Page Visited: " + "Login");
         return "redirect:/";
     }
 
     @GetMapping("/register")
     public String registerPage(Model model) {
-    	System.out.println("Page Visited: " + "Register");
         model.addAttribute("user", new User());
         return "register";
     }
 
+    // ✅ SIMPLE REGISTER (NO OTP)
     @PostMapping("/register")
-    public String register(@ModelAttribute User user) {
+    public String register(@ModelAttribute User user, Model model) {
+
+        if (service.findByEmail(user.getEmail()).isPresent()) {
+            model.addAttribute("error", "Email already exists!");
+            return "register";
+        }
+
         service.saveUser(user);
-        return "redirect:/";
+
+        // ✅ SUCCESS MESSAGE
+        model.addAttribute("success", "Registered Successfully!");
+        return "login";
     }
 
     @GetMapping("/dashboard")
-    public String dashboard(Model model) {
-    	System.out.println("Page Visited: " + "Dashboard");
+    public String dashboard() {
 
         Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
 
-        // Safety check (important)
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails)) {
-            return "redirect:/"; // back to login
+            return "redirect:/";
         }
 
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
 
-        String username = userDetails.getName();
+        User user = service.findByEmail(userDetails.getUsername()).get();
 
-        System.out.println("UserName is : " + username);
-
-        model.addAttribute("username", username);
-
-        return "dashboard";
+        // ✅ ROLE BASED REDIRECTION
+        if (user.getRole() == com.project.login.entity.Role.CONTRACTOR) {
+            return "contractor/dashboard";
+        } else {
+            return "employee/dashboard";
+        }
     }
-
-
 }

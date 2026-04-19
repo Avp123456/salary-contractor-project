@@ -25,19 +25,13 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                        "/",
-                        "/login",
-                        "/register",
-                        "/send-register-otp",      // ✅ ADDED
-                        "/verify-register-otp",    // ✅ ADDED
-                        "/css/**",
-                        "/js/**",
-                        "/images/**",
-                        "/webjars/**"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
+            	    .requestMatchers("/", "/login", "/register", "/css/**", "/js/**").permitAll()
+            	    
+            	    .requestMatchers("/contractor/**").hasAuthority("CONTRACTOR")
+            	    .requestMatchers("/employee/**").hasAuthority("EMPLOYEE")
+            	    
+            	    .anyRequest().authenticated()
+            	)
 
             .formLogin(form -> form
                 .loginPage("/")

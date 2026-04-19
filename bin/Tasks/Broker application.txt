@@ -1,0 +1,23 @@
+1.Quality  weaver tredar Search want. 
+
+3. Contact Book Option at Mobile Number add in Weaver and Treder Master. and Owner Mobi.No. and Divanji Mobi.No.
+Weaver Brokerage % and Brokerage Paisa.
+owner mob no
+diwanji mob no
+weaver Brokerage %
+Brokerage per meter Paisa.
+type should be at top.
+
+4. weaver, treder, Quality + Button want.
+5. contract no editable (no duplete crNo in same account yr (1april 2026 to 31 march 2027).
+6. After Quantity want combo Sizing / Fabric
+
+7. Report la Rate = ((Job Rate/100) * Pick) , Amount = (Rate * Quantity Mtr) ,    pick is taken from the quality 
+Brokerage % Amt = Amount *  (Brokerage %/100)   brokerage is taken from weaver treder master.
+Brokerage Mtr Amt = Quantity Mtr *  (Brokerage Paisa./100) paisa is taken from weaver treder master. 
+ 
+8. Report PDF and Excel.(new col to add)
+9. Cr Print PDF and Image  
+10. after registration activation page want
+11. after 1 yr from activation, the user account is expired
+	and need to activate it again. for that payment gatway has to be implemented.

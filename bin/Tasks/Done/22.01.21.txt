@@ -1,0 +1,14 @@
+1. in weaver/trader master need to add phone number also.
+3. generate bill button change name to 'save'
+4. on click on save button in gen_contract it will ask do you want to save ? yes/no
+5. need edit/delete button on report for each record
+6. when cliked on edit it will redirect to gen_contract form with that data and buttons on gen_contract form should be update/cancle.
+8. for each row on report edit(pop up want), delete(pop up want)
+
+
+1.Quality Master
+63" 65/2*90 / 40 CBD* 40KW+20S
+6. Weaver want once not 2 time.
+9. List la Edit and Delete option want.
+2. DATE TOADY BY DEFULT.
+

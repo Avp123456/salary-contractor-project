@@ -1,0 +1,8 @@
+***How to add new column in db and take input from user
+
+1. go to gen_bill.html and create new label and input (imp to give name correctly)
+2. go to entity(gen_bill.java) and add @column, getter and setters.
+3. go controller and add it in @requestparam and set the column for the entity(gen_bill) object.
+4. now go to report.html and another label for beams. it will directly take from the entity
+5. flow :- html -> controller -> service -> entity.
+6. now for adding that column into excel go to report controller and add into column names and as per column seq add in cells.

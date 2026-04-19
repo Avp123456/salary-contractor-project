@@ -3,7 +3,10 @@ package com.project.security;
 import com.project.login.entity.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import java.util.Collection;
+import java.util.List;   // ✅ IMPORTANT IMPORT
 
 @SuppressWarnings("serial")
 public class CustomUserDetails implements UserDetails {
@@ -14,22 +17,32 @@ public class CustomUserDetails implements UserDetails {
         this.user = user;
     }
 
+    // 👇 Used in dashboard (your custom use)
     public String getName() {
-        return user.getName();   // 👈 THIS IS WHAT WE WANT
+        return user.getName();
     }
 
     public Long getId() {
         return user.getId();
     }
 
+    // 👇 Spring Security uses this for login
     @Override
     public String getUsername() {
-        return user.getEmail(); // login still uses email
+        return user.getEmail();
     }
 
     @Override
     public String getPassword() {
         return user.getPassword();
+    }
+
+    // 👇 THIS IS CRITICAL FOR ROLE-BASED LOGIN
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(
+            new SimpleGrantedAuthority(user.getRole().name())
+        );
     }
 
     @Override
@@ -43,10 +56,4 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() { return true; }
-
-	@Override
-	public Collection<? extends GrantedAuthority> getAuthorities() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }
