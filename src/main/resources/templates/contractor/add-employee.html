@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Add Employee</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div th:replace="fragments/navbar :: navbar"></div>
+
+<div class="container mt-4">
+
+    <h3>Add Employee</h3>
+
+    <form th:action="@{/contractor/save-employee}" method="post" th:object="${employee}">
+
+        <div class="mb-3">
+            <label>Name</label>
+            <input type="text" th:field="*{name}" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label>Email</label>
+            <input type="email" th:field="*{email}" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label>Password</label>
+            <input type="password" th:field="*{password}" class="form-control" required>
+        </div>
+
+        <button class="btn btn-success">Save Employee</button>
+
+    </form>
+
+</div>
+
+</body>
+</html>
