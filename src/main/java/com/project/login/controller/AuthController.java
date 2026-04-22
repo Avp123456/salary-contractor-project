@@ -49,6 +49,11 @@ public class AuthController {
     @Autowired
     private ExcelService excelService;
 
+    private Long getCurrentContractorId(HttpSession session) {
+        Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
+        return (contractor != null) ? contractor.getContractorId() : null;
+    }
+
     @GetMapping("/")
     public String root() {
         return "redirect:/login";
@@ -169,6 +174,8 @@ public class AuthController {
         fileObj.setSize(file.getSize());
         fileObj.setUploadDate(java.time.LocalDateTime.now());
 
+        Long contractorId = getCurrentContractorId(session);
+        fileObj.setContractorId(contractorId);
         try {
             fileObj.setFileContent(file.getBytes());
         } catch (Exception e) {}
@@ -178,8 +185,9 @@ public class AuthController {
     }
     
     @GetMapping("/contractor/reports")
-    public String reports(Model model) {
-        model.addAttribute("files", fileRepo.findAll());
+    public String reports(Model model, HttpSession session) {
+        Long contractorId = getCurrentContractorId(session);
+        model.addAttribute("files", fileRepo.findByContractorId(contractorId));
         return "contractor/reports";
     }
     
@@ -194,12 +202,13 @@ public class AuthController {
         int trailerCount = payload.get("trailerCount") != null ? Integer.parseInt(payload.get("trailerCount").toString()) : 0;
         List<java.util.Map<String, Object>> columnData = (List<java.util.Map<String, Object>>) payload.get("columns");
         
+        Long contractorId = getCurrentContractorId(session);
         UploadedFiles file = fileRepo.findById(fileId).orElse(null);
-        if (file != null) {
-            file.setHeaderCount(headerCount);
-            file.setTrailerCount(trailerCount);
-            fileRepo.save(file);
-        }
+        if (file == null || !file.getContractorId().equals(contractorId)) return "Error: Unauthorized";
+        
+        file.setHeaderCount(headerCount);
+        file.setTrailerCount(trailerCount);
+        fileRepo.save(file);
 
         columnRepo.deleteByFileId(fileId);
         List<UploadedFileColumns> columns = new java.util.ArrayList<>();
@@ -209,6 +218,7 @@ public class AuthController {
         for (java.util.Map<String, Object> colMap : columnData) {
             UploadedFileColumns c = new UploadedFileColumns();
             c.setFileId(fileId);
+            c.setContractorId(contractorId);
             c.setColumnName(colMap.get("columnName").toString());
             c.setDataType(colMap.get("dataType").toString());
             c.setColumnPosition(Integer.parseInt(colMap.get("columnPosition").toString()));
@@ -232,11 +242,12 @@ public class AuthController {
     public String saveData(HttpSession session) {
         List<List<String>> data = (List<List<String>>) session.getAttribute("processedData");
         Long fileId = (Long) session.getAttribute("fileId");
-        List<UploadedFileColumns> columns = columnRepo.findByFileId(fileId);
+        Long contractorId = getCurrentContractorId(session);
+        List<UploadedFileColumns> columns = columnRepo.findByFileIdAndContractorId(fileId, contractorId);
         
         if (data == null && fileId != null) {
-            // Re-generate processed data if session expired
             UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+            if (file == null || !file.getContractorId().equals(contractorId)) return "redirect:/contractor/reports";
             List<List<String>> excelData = (List<List<String>>) session.getAttribute("excelData");
             if (excelData == null && file != null && file.getFileContent() != null) {
                 excelData = excelService.parseExcel(file.getFileContent());
@@ -268,6 +279,7 @@ public class AuthController {
         for (List<String> row : data) {
             UploadedFileData d = new UploadedFileData();
             d.setFileId(fileId);
+            d.setContractorId(contractorId);
 
             for (int i = 0; i < parseColumns.size(); i++) {
                 UploadedFileColumns col = parseColumns.get(i);
@@ -306,16 +318,14 @@ public class AuthController {
         return "contractor/columns";
     }
     
-    @GetMapping("/contractor/delete-file/{id}")
-    public String deleteFile(@PathVariable Long id) {
-        fileRepo.deleteById(id);
-        return "redirect:/contractor/reports";
-    }	
     
     @GetMapping("/contractor/preview")
     public String preview(Model model, HttpSession session) {
         Long fileId = (Long) session.getAttribute("fileId");
+        Long contractorId = getCurrentContractorId(session);
         UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+        if (file == null || !file.getContractorId().equals(contractorId)) return "redirect:/contractor/reports";
+        
         List<List<String>> excelData = (List<List<String>>) session.getAttribute("excelData");
         
         System.out.println("Preview - File ID: " + fileId);
@@ -367,5 +377,17 @@ public class AuthController {
         model.addAttribute("columns", displayColumns);
         session.setAttribute("processedData", filteredData);
         return "contractor/preview";
+    }
+
+    @GetMapping("/contractor/delete-file/{id}")
+    public String deleteFile(@PathVariable Long id, HttpSession session) {
+        Long contractorId = getCurrentContractorId(session);
+        UploadedFiles file = fileRepo.findById(id).orElse(null);
+        if (file != null && contractorId != null && contractorId.equals(file.getContractorId())) {
+            dataRepo.deleteByFileId(id);
+            columnRepo.deleteByFileId(id);
+            fileRepo.delete(file);
+        }
+        return "redirect:/contractor/reports";
     }
 }

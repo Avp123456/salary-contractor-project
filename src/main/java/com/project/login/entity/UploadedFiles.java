@@ -22,6 +22,14 @@ import jakarta.persistence.Table;
 	    private Integer trailerCount;
 	    @jakarta.persistence.Column(name = "file_content")
 	    private byte[] fileContent;
+	    private Long contractorId;
+	    
+		public Long getContractorId() {
+			return contractorId;
+		}
+		public void setContractorId(Long contractorId) {
+			this.contractorId = contractorId;
+		}
 		public Long getId() {
 			return id;
 		}

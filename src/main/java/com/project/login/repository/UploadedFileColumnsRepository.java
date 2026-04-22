@@ -1,18 +1,16 @@
 package com.project.login.repository;
 
-import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 import com.project.login.entity.UploadedFileColumns;
+import java.util.List;
 
 @Repository
 public interface UploadedFileColumnsRepository extends JpaRepository<UploadedFileColumns, Long> {
-
     List<UploadedFileColumns> findByFileId(Long fileId);
-
-    @Modifying
-    @Transactional
+    List<UploadedFileColumns> findByFileIdAndContractorId(Long fileId, Long contractorId);
+    
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
     void deleteByFileId(Long fileId);
 }

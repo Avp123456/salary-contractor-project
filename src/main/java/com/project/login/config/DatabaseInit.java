@@ -19,8 +19,11 @@ public class DatabaseInit implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS header_count INTEGER");
             jdbcTemplate.execute("ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS trailer_count INTEGER");
             jdbcTemplate.execute("ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS file_content BYTEA");
+            jdbcTemplate.execute("ALTER TABLE uploaded_files ADD COLUMN IF NOT EXISTS contractor_id BIGINT");
             jdbcTemplate.execute("ALTER TABLE uploaded_file_columns ADD COLUMN IF NOT EXISTS actual_col_name VARCHAR(255)");
             jdbcTemplate.execute("ALTER TABLE uploaded_file_columns ADD COLUMN IF NOT EXISTS parse BOOLEAN");
+            jdbcTemplate.execute("ALTER TABLE uploaded_file_columns ADD COLUMN IF NOT EXISTS contractor_id BIGINT");
+            jdbcTemplate.execute("ALTER TABLE file_data ADD COLUMN IF NOT EXISTS contractor_id BIGINT");
 
             // Then fill existing nulls with defaults
             jdbcTemplate.execute("UPDATE uploaded_files SET header_count = 0 WHERE header_count IS NULL");

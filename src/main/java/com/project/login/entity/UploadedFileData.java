@@ -16,6 +16,14 @@ import jakarta.persistence.Table;
 	    private Long id;
 
 	    private Long fileId;
+	    private Long contractorId;
+	    
+	    public Long getContractorId() {
+	    	return contractorId;
+	    }
+	    public void setContractorId(Long contractorId) {
+	    	this.contractorId = contractorId;
+	    }
 
 	    // STRING columns
 	    private String str1;
