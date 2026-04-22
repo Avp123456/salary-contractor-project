@@ -18,6 +18,10 @@ import jakarta.persistence.Table;
 	    private String fileName;
 	    private Long size;
 	    private LocalDateTime uploadDate;
+	    private Integer headerCount;
+	    private Integer trailerCount;
+	    @jakarta.persistence.Column(name = "file_content")
+	    private byte[] fileContent;
 		public Long getId() {
 			return id;
 		}
@@ -41,6 +45,24 @@ import jakarta.persistence.Table;
 		}
 		public void setUploadDate(LocalDateTime uploadDate) {
 			this.uploadDate = uploadDate;
+		}
+		public Integer getHeaderCount() {
+			return headerCount;
+		}
+		public void setHeaderCount(Integer headerCount) {
+			this.headerCount = headerCount;
+		}
+		public Integer getTrailerCount() {
+			return trailerCount;
+		}
+		public void setTrailerCount(Integer trailerCount) {
+			this.trailerCount = trailerCount;
+		}
+		public byte[] getFileContent() {
+			return fileContent;
+		}
+		public void setFileContent(byte[] fileContent) {
+			this.fileContent = fileContent;
 		}
 	    
 	}

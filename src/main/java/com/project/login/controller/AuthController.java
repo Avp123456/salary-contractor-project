@@ -49,9 +49,6 @@ public class AuthController {
     @Autowired
     private ExcelService excelService;
 
-  
-   
-    
     @GetMapping("/")
     public String root() {
         return "redirect:/login";
@@ -87,7 +84,7 @@ public class AuthController {
             Employee employee = employeeService.login(email, password);
 
             if (employee != null) {
-                session.setAttribute("loggedInEmployee", employee); // 🔥 ADD THIS LINE
+                session.setAttribute("loggedInEmployee", employee);
                 return "redirect:/employee/dashboard";
             } else {
                 model.addAttribute("error", "Invalid employee credentials");
@@ -95,12 +92,11 @@ public class AuthController {
             }
         }
     }
- 
-    
+
     @GetMapping("/logout")
     public String logout(HttpSession session) {
-        session.invalidate(); // ✅ destroy session
-        return "redirect:/?logout"; // redirect to login page
+        session.invalidate();
+        return "redirect:/?logout";
     }
 
     @GetMapping("/contractor/dashboard")
@@ -115,12 +111,9 @@ public class AuthController {
 
     @GetMapping("/contractor/employees")
     public String employees(Model model, HttpSession session) {
-
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-
         List<Employee> list = employeeService.getByContractor(contractor);
         model.addAttribute("employees", list);
-
         return "contractor/employees";
     }
 
@@ -132,12 +125,9 @@ public class AuthController {
 
     @PostMapping("/contractor/save-employee")
     public String saveEmployee(@ModelAttribute Employee employee, HttpSession session) {
-
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-
         employee.setContractor(contractor);
         employeeService.save(employee);
-
         return "redirect:/contractor/employees";
     }
 
@@ -149,10 +139,8 @@ public class AuthController {
 
     @GetMapping("/contractor/edit-employee/{id}")
     public String editEmployee(@PathVariable Long id, Model model) {
-
         Employee emp = employeeService.getById(id);
         model.addAttribute("employee", emp);
-
         return "contractor/add-employee";
     }
 
@@ -171,118 +159,150 @@ public class AuthController {
         return "contractor/profile";
     }
 
-   
-@PostMapping("/contractor/upload")
-public String uploadFile(@RequestParam("file") MultipartFile file,
-                         HttpSession session) {
+    @PostMapping("/contractor/upload")
+    public String uploadFile(@RequestParam("file") MultipartFile file, HttpSession session) {
+        List<List<String>> data = excelService.parseExcel(file);
+        session.setAttribute("excelData", data);
 
-    List<List<String>> data = excelService.parseExcel(file);
+        UploadedFiles fileObj = new UploadedFiles();
+        fileObj.setFileName(file.getOriginalFilename());
+        fileObj.setSize(file.getSize());
+        fileObj.setUploadDate(java.time.LocalDateTime.now());
 
-    session.setAttribute("excelData", data);
-
-    UploadedFiles fileObj = new UploadedFiles();
-
-    fileObj.setFileName(file.getOriginalFilename());
-    fileObj.setSize(file.getSize());
-    fileObj.setUploadDate(java.time.LocalDateTime.now());
-
-    fileRepo.save(fileObj);
-
-    return "redirect:/contractor/reports";
-}
-    
-    @GetMapping("/contractor/reports")
-    public String reports(Model model) {
-
-        model.addAttribute("files", fileRepo.findAll());
-
-        return "contractor/reports";
-    }
-    
-    
-    
-   @PostMapping("/contractor/save-columns")
-@ResponseBody
-public String saveColumns(@RequestBody List<UploadedFileColumns> cols,
-                         HttpSession session) {
-
-    Long fileId = (Long) session.getAttribute("fileId");
-
-    // 🔥 ADD THIS LINE (IMPORTANT)
-    columnRepo.deleteByFileId(fileId);
-
-    for (UploadedFileColumns c : cols) {
-        c.setFileId(fileId);
-    }
-
-    columnRepo.saveAll(cols);
-
-    return "OK";
-}
-    
-    @PostMapping("/contractor/save-data")
-    public String saveData(HttpSession session) {
-
-        List<List<String>> data =
-                (List<List<String>>) session.getAttribute("excelData");
-
-        Long fileId = (Long) session.getAttribute("fileId");
-
-        List<UploadedFileColumns> columns =
-                columnRepo.findByFileId(fileId);
-
-        for (List<String> row : data) {
-
-            UploadedFileData d = new UploadedFileData();
-            d.setFileId(fileId);
-
-            for (UploadedFileColumns col : columns) {
-
-                int pos = col.getColumnPosition();
-                String value = pos < row.size() ? row.get(pos) : "";
-
-                if ("STRING".equalsIgnoreCase(col.getDataType())) {
-                    setString(d, col.getActualColumn(), value);
-                } else {
-                    setNumber(d, col.getActualColumn(), value);
-                }
-            }
-
-            dataRepo.save(d);
-        }
-
+        try {
+            fileObj.setFileContent(file.getBytes());
+        } catch (Exception e) {}
+        
+        fileRepo.save(fileObj);
         return "redirect:/contractor/reports";
     }
     
+    @GetMapping("/contractor/reports")
+    public String reports(Model model) {
+        model.addAttribute("files", fileRepo.findAll());
+        return "contractor/reports";
+    }
     
+    @PostMapping("/contractor/save-columns-and-config")
+    @ResponseBody
+    public String saveColumnsAndConfig(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
+        Object fileIdObj = payload.get("fileId");
+        if (fileIdObj == null) return "Error: Missing fileId";
+        
+        Long fileId = Long.valueOf(fileIdObj.toString());
+        int headerCount = payload.get("headerCount") != null ? Integer.parseInt(payload.get("headerCount").toString()) : 0;
+        int trailerCount = payload.get("trailerCount") != null ? Integer.parseInt(payload.get("trailerCount").toString()) : 0;
+        List<java.util.Map<String, Object>> columnData = (List<java.util.Map<String, Object>>) payload.get("columns");
+        
+        UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+        if (file != null) {
+            file.setHeaderCount(headerCount);
+            file.setTrailerCount(trailerCount);
+            fileRepo.save(file);
+        }
+
+        columnRepo.deleteByFileId(fileId);
+        List<UploadedFileColumns> columns = new java.util.ArrayList<>();
+        int strCount = 1;
+        int numCount = 1;
+
+        for (java.util.Map<String, Object> colMap : columnData) {
+            UploadedFileColumns c = new UploadedFileColumns();
+            c.setFileId(fileId);
+            c.setColumnName(colMap.get("columnName").toString());
+            c.setDataType(colMap.get("dataType").toString());
+            c.setColumnPosition(Integer.parseInt(colMap.get("columnPosition").toString()));
+            c.setParse(Boolean.parseBoolean(colMap.get("parse").toString()));
+            
+            if (c.isParse() != null && c.isParse()) {
+                if ("STRING".equalsIgnoreCase(c.getDataType())) {
+                    c.setActualColumn("str" + strCount++);
+                } else {
+                    c.setActualColumn("num" + numCount++);
+                }
+            }
+            columns.add(c);
+        }
+        columnRepo.saveAll(columns);
+        session.setAttribute("fileId", fileId);
+        return "OK";
+    }
+    
+    @PostMapping("/contractor/save-data")
+    public String saveData(HttpSession session) {
+        List<List<String>> data = (List<List<String>>) session.getAttribute("processedData");
+        Long fileId = (Long) session.getAttribute("fileId");
+        List<UploadedFileColumns> columns = columnRepo.findByFileId(fileId);
+        
+        if (data == null && fileId != null) {
+            // Re-generate processed data if session expired
+            UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+            List<List<String>> excelData = (List<List<String>>) session.getAttribute("excelData");
+            if (excelData == null && file != null && file.getFileContent() != null) {
+                excelData = excelService.parseExcel(file.getFileContent());
+            }
+            if (excelData != null && file != null) {
+                data = new java.util.ArrayList<>();
+                int start = file.getHeaderCount() != null ? file.getHeaderCount() : 0;
+                int end = excelData.size() - (file.getTrailerCount() != null ? file.getTrailerCount() : 0);
+                for (int i = start; i < end && i < excelData.size(); i++) {
+                    List<String> row = excelData.get(i);
+                    List<String> newRow = new java.util.ArrayList<>();
+                    for (UploadedFileColumns col : columns) {
+                        if (col.isParse() != null && col.isParse()) {
+                            int pos = col.getColumnPosition() - 1;
+                            String val = pos >= 0 && pos < row.size() ? row.get(pos) : "";
+                            newRow.add(val);
+                        }
+                    }
+                    boolean allEmpty = true;
+                    for(String s : newRow) if(s != null && !s.trim().isEmpty()) { allEmpty = false; break; }
+                    if(!allEmpty) data.add(newRow);
+                }
+            }
+        }
+
+        List<UploadedFileColumns> parseColumns = new java.util.ArrayList<>();
+        for(UploadedFileColumns c : columns) if(c.isParse() != null && c.isParse()) parseColumns.add(c);
+
+        for (List<String> row : data) {
+            UploadedFileData d = new UploadedFileData();
+            d.setFileId(fileId);
+
+            for (int i = 0; i < parseColumns.size(); i++) {
+                UploadedFileColumns col = parseColumns.get(i);
+                String value = i < row.size() ? row.get(i) : "";
+                if (col.getActualColumn().startsWith("str")) {
+                    setString(d, col.getActualColumn(), value);
+                } else if (col.getActualColumn().startsWith("num")) {
+                    setNumber(d, col.getActualColumn(), value);
+                }
+            }
+            dataRepo.save(d);
+        }
+        return "redirect:/contractor/reports";
+    }
     
     private void setString(UploadedFileData d, String col, String val) {
-
-        switch (col) {
-            case "str1": d.setStr1(val); break;
-            case "str2": d.setStr2(val); break;
-        }
+        try {
+            java.lang.reflect.Method method = UploadedFileData.class.getMethod("set" + col.substring(0, 1).toUpperCase() + col.substring(1), String.class);
+            method.invoke(d, val);
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     private void setNumber(UploadedFileData d, String col, String val) {
-
         Double num = 0.0;
-
         try {
             num = val == null || val.isEmpty() ? 0 : Double.parseDouble(val);
+            java.lang.reflect.Method method = UploadedFileData.class.getMethod("set" + col.substring(0, 1).toUpperCase() + col.substring(1), Double.class);
+            method.invoke(d, num);
         } catch (Exception e) {}
-
-        switch (col) {
-            case "num1": d.setNum1(num); break;
-            case "num2": d.setNum2(num); break;
-        }
     }
     
     @GetMapping("/contractor/columns")
-    public String columns(@RequestParam Long fileId, HttpSession session) {
-
+    public String columns(@RequestParam Long fileId, Model model, HttpSession session) {
         session.setAttribute("fileId", fileId);
-
+        model.addAttribute("fileId", fileId);
         return "contractor/columns";
     }
     
@@ -292,111 +312,60 @@ public String saveColumns(@RequestBody List<UploadedFileColumns> cols,
         return "redirect:/contractor/reports";
     }	
     
-    
-  @GetMapping("/contractor/preview")
-public String preview(Model model, HttpSession session) {
-
-    List<List<String>> excelData =
-        (List<List<String>>) session.getAttribute("excelData");
-
-    Long fileId = (Long) session.getAttribute("fileId");
-
-    List<UploadedFileColumns> columns =
-        columnRepo.findByFileId(fileId);
-
-    // 🔥 FILTERED DATA
-    List<List<String>> filteredData = new java.util.ArrayList<>();
-
-    for (List<String> row : excelData) {
-
-        List<String> newRow = new java.util.ArrayList<>();
-
-        for (UploadedFileColumns col : columns) {
-
-            int pos = col.getColumnPosition();
-
-            String value = pos < row.size() ? row.get(pos) : "";
-
-            newRow.add(value);
+    @GetMapping("/contractor/preview")
+    public String preview(Model model, HttpSession session) {
+        Long fileId = (Long) session.getAttribute("fileId");
+        UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+        List<List<String>> excelData = (List<List<String>>) session.getAttribute("excelData");
+        
+        System.out.println("Preview - File ID: " + fileId);
+        if (file != null) {
+            System.out.println("File found in DB. Content exists? " + (file.getFileContent() != null));
         }
 
-        filteredData.add(newRow);
-    }
-
-    model.addAttribute("data", filteredData);
-    model.addAttribute("columns", columns);
-
-    return "contractor/preview";
-}  
-    @GetMapping("/contractor/config")
-    public String config(@RequestParam Long fileId, Model model, HttpSession session) {
-
-        session.setAttribute("fileId", fileId);
-        model.addAttribute("fileId", fileId);
-
-        return "contractor/config";
-    }
-    
-@PostMapping("/contractor/save-config")
-public String saveConfig(
-        @RequestParam Long fileId,
-        @RequestParam String headerExists,
-        @RequestParam int headerLines,
-        @RequestParam String parseHeader,
-        @RequestParam String trailerExists,
-        @RequestParam int trailerLines,
-        @RequestParam String parseTrailer,
-        HttpSession session) {
-
-    List<List<String>> original =
-            (List<List<String>>) session.getAttribute("excelData");
-
-    // 🔥 MAKE COPY (IMPORTANT)
-    List<List<String>> data = new java.util.ArrayList<>();
-    for (List<String> row : original) {
-        data.add(new java.util.ArrayList<>(row));
-    }
-
-    // ✅ HEADER REMOVE
-    if ("YES".equals(headerExists) && "NO".equals(parseHeader)) {
-        for (int i = 0; i < headerLines && !data.isEmpty(); i++) {
-            data.remove(0);
+        if (excelData == null && file != null && file.getFileContent() != null) {
+            System.out.println("Attempting to re-parse file content...");
+            excelData = excelService.parseExcel(file.getFileContent());
+            System.out.println("Re-parsed Excel size: " + (excelData != null ? excelData.size() : "NULL"));
+            session.setAttribute("excelData", excelData);
         }
-    }
+        
+        List<UploadedFileColumns> columns = columnRepo.findByFileId(fileId);
 
-    // ✅ TRAILER REMOVE
-    if ("YES".equals(trailerExists) && "NO".equals(parseTrailer)) {
+        List<List<String>> filteredData = new java.util.ArrayList<>();
+        if (excelData != null && file != null) {
+            int start = file.getHeaderCount() != null ? file.getHeaderCount() : 0;
+            int end = excelData.size() - (file.getTrailerCount() != null ? file.getTrailerCount() : 0);
+            
+            System.out.println("Processing file: " + file.getFileName());
+            System.out.println("Excel Data Size: " + excelData.size());
+            System.out.println("Start: " + start + ", End: " + end);
 
-        int lastIndex = data.size() - 1;
-
-        // find last non-empty row
-        for (int i = data.size() - 1; i >= 0; i--) {
-            boolean empty = true;
-            for (String cell : data.get(i)) {
-                if (cell != null && !cell.trim().isEmpty()) {
-                    empty = false;
-                    break;
+            for (int i = start; i < end && i < excelData.size(); i++) {
+                List<String> row = excelData.get(i);
+                List<String> newRow = new java.util.ArrayList<>();
+                for (UploadedFileColumns col : columns) {
+                    if (col.isParse() != null && col.isParse()) {
+                        int pos = col.getColumnPosition() - 1;
+                        String value = pos >= 0 && pos < row.size() ? row.get(pos) : "";
+                        newRow.add(value);
+                    }
                 }
+                boolean allEmpty = true;
+                for(String s : newRow) if(s != null && !s.trim().isEmpty()) { allEmpty = false; break; }
+                if(!allEmpty) filteredData.add(newRow);
             }
-            if (!empty) {
-                lastIndex = i;
-                break;
-            }
+            System.out.println("Filtered Data Rows: " + filteredData.size());
+        } else {
+            System.out.println("ExcelData or File is NULL. excelData null? " + (excelData == null) + " file null? " + (file == null));
         }
 
-        for (int i = 0; i < trailerLines && lastIndex >= 0; i++) {
-            data.remove(lastIndex);
-            lastIndex--;
-        }
-        if (original == null) {
-            return "redirect:/contractor/reports";
-        }
+        List<UploadedFileColumns> displayColumns = new java.util.ArrayList<>();
+        for(UploadedFileColumns c : columns) if(c.isParse() != null && c.isParse()) displayColumns.add(c);
+
+        model.addAttribute("data", filteredData);
+        model.addAttribute("columns", displayColumns);
+        session.setAttribute("processedData", filteredData);
+        return "contractor/preview";
     }
-
-    // 🔥 SAVE BACK
-    session.setAttribute("excelData", data);
-
-    return "redirect:/contractor/columns?fileId=" + fileId;
 }
-}
-

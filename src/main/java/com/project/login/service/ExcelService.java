@@ -8,7 +8,7 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,10 +16,17 @@ import org.springframework.web.multipart.MultipartFile;
 public class ExcelService {
 
     public List<List<String>> parseExcel(MultipartFile file) {
+        try {
+            return parseExcel(file.getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
+    public List<List<String>> parseExcel(byte[] fileBytes) {
         List<List<String>> data = new ArrayList<>();
-
-        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+        try (Workbook workbook = WorkbookFactory.create(new java.io.ByteArrayInputStream(fileBytes))) {
 
             Sheet sheet = workbook.getSheetAt(0);
 

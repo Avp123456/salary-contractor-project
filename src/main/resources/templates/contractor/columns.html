@@ -1,92 +1,134 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-<title>Column Mapping</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Define Columns</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .container { max-width: 1100px; margin-top: 50px; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); background: white; padding: 25px; }
+        .table thead { background-color: #f1f5f9; }
+        .table th { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #64748b; padding: 12px; }
+        .btn-add { background-color: #eff6ff; color: #2563eb; border: 1px dashed #3b82f6; width: 100%; margin-top: 10px; padding: 10px; font-weight: 500; }
+        .btn-add:hover { background-color: #dbeafe; }
+        .btn-show { background-color: #2563eb; color: white; font-weight: 600; padding: 10px 25px; border-radius: 8px; }
+        .btn-show:hover { background-color: #1d4ed8; color: white; }
+        .config-row { background-color: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #e2e8f0; }
+    </style>
 </head>
-
 <body>
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<div class="container mt-4">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold">Define Columns & Parsing Rules</h2>
+            <button class="btn btn-show" onclick="saveAndShow()">Show Data &raquo;</button>
+        </div>
 
-    <h3>Column Mapping</h3>
+        <div class="card">
+            <!-- Header/Trailer Config -->
+            <div class="config-row">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Header Rows to Skip</label>
+                        <input type="number" id="headerCount" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted">Trailer Rows to Skip</label>
+                        <input type="number" id="trailerCount" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <p class="small text-muted mb-2">Rows will be removed from the top (header) and from the last row containing data (trailer).</p>
+                    </div>
+                </div>
+            </div>
 
-    <table class="table table-bordered" id="columnTable">
-        <thead>
-            <tr>
-                <th>Column Name</th>
-                <th>Position</th>
-                <th>Data Type</th>
-                <th>Actual Column</th>
-                <th>Action</th>
-            </tr>
-        </thead>
+            <table class="table table-hover" id="columnTable">
+                <thead>
+                    <tr>
+                        <th>Column Name</th>
+                        <th style="width: 150px;">Data Type</th>
+                        <th style="width: 120px;">Position (Excel)</th>
+                        <th style="width: 150px;">Parse (Yes/No)</th>
+                        <th style="width: 80px;" class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="columnBody">
+                    <!-- Rows added dynamically -->
+                </tbody>
+            </table>
+            <button class="btn btn-add" onclick="addRow()">+ Add Column Mapping</button>
+        </div>
+        
+        <div class="mt-4">
+            <button class="btn btn-light" onclick="history.back()">&larr; Back to History</button>
+        </div>
+    </div>
 
-        <tbody id="body">
-        </tbody>
-    </table>
+    <script th:inline="javascript">
+        /*[Hold fileId in JS]*/
+        const fileId = [[${fileId}]];
 
-    <button class="btn btn-primary" onclick="addRow()">Add Column</button>
-    <button class="btn btn-success" onclick="saveColumns()">Show Data</button>
-    <button class="btn btn-secondary" onclick="history.back()">
-    ⬅ Previous
-</button>
+        function addRow() {
+            const tbody = document.getElementById('columnBody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" class="form-control" placeholder="e.g. Employee Name"></td>
+                <td>
+                    <select class="form-select">
+                        <option value="STRING">STRING</option>
+                        <option value="NUMBER">NUMBER</option>
+                    </select>
+                </td>
+                <td><input type="number" class="form-control" placeholder="e.g. 1 for A" min="1"></td>
+                <td>
+                    <select class="form-select">
+                        <option value="true">YES</option>
+                        <option value="false">NO</option>
+                    </select>
+                </td>
+                <td class="text-center">
+                    <button class="btn btn-outline-danger btn-sm" onclick="this.parentElement.parentElement.remove()">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
 
-</div>
+        // Add initial row
+        addRow();
 
+        function saveAndShow() {
+            const rows = document.querySelectorAll('#columnBody tr');
+            const data = [];
+            
+            rows.forEach(r => {
+                const inputs = r.querySelectorAll('input, select');
+                data.push({
+                    columnName: inputs[0].value,
+                    dataType: inputs[1].value,
+                    columnPosition: parseInt(inputs[2].value) || 0,
+                    parse: inputs[3].value === 'true'
+                });
+            });
 
-<script>
+            const config = {
+                fileId: fileId,
+                headerCount: parseInt(document.getElementById('headerCount').value) || 0,
+                trailerCount: parseInt(document.getElementById('trailerCount').value) || 0,
+                columns: data
+            };
 
-function addRow() {
-
-    let row = `
-    <tr>
-        <td><input class="form-control" placeholder="Column Name"></td>
-        <td><input class="form-control" placeholder="Position"></td>
-
-        <td>
-            <select class="form-control">
-                <option>STRING</option>
-                <option>NUMBER</option>
-            </select>
-        </td>
-
-        <td><input class="form-control" placeholder="str1 / num1"></td>
-
-        <td><button class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">X</button></td>
-    </tr>
-    `;
-
-    document.getElementById("body").innerHTML += row;
-}
-
-function saveColumns() {
-
-    let rows = document.querySelectorAll("#body tr");
-    let data = [];
-
-    rows.forEach(r => {
-
-        let cols = r.querySelectorAll("input,select");
-
-        data.push({
-            columnName: cols[0].value,
-            columnPosition: parseInt(cols[1].value),
-            dataType: cols[2].value,
-            actualColumn: cols[3].value
-        });
-
-    });
-
-    fetch("/contractor/save-columns", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-    })
-    .then(() => window.location.href = "/contractor/preview");
-}
-
-</script>
-
+            fetch('/contractor/save-columns-and-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            })
+            .then(res => {
+                if(res.ok) window.location.href = '/contractor/preview';
+                else alert('Error saving configuration');
+            });
+        }
+    </script>
 </body>
 </html>

@@ -20,7 +20,9 @@ import jakarta.persistence.Table;
 	    private String columnName;       // user given name
 	    private int columnPosition;      // excel index
 	    private String dataType;         // STRING / NUMBER
+	    @jakarta.persistence.Column(name = "actual_col_name")
 	    private String actualColumn;     // str1 / num1
+	    private Boolean parse;           // include in parsing
 		public Long getId() {
 			return id;
 		}
@@ -56,6 +58,12 @@ import jakarta.persistence.Table;
 		}
 		public void setActualColumn(String actualColumn) {
 			this.actualColumn = actualColumn;
+		}
+		public Boolean isParse() {
+			return parse;
+		}
+		public void setParse(Boolean parse) {
+			this.parse = parse;
 		}
 	    
 	    

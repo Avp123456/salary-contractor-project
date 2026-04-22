@@ -1,45 +1,63 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-<title>Preview</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Preview Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .container { max-width: 1200px; margin-top: 50px; }
+        .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); background: white; overflow: hidden; }
+        .table thead { background-color: #f1f5f9; }
+        .table th { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #64748b; padding: 16px; border-bottom: 1px solid #e2e8f0; }
+        .table td { padding: 12px 16px; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9; }
+        .btn-save { background-color: #059669; color: white; font-weight: 600; padding: 10px 25px; border-radius: 8px; transition: all 0.2s; }
+        .btn-save:hover { background-color: #047857; color: white; transform: translateY(-1px); }
+        .badge-count { background-color: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    </style>
 </head>
-
 <body>
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<div class="container mt-4">
+    <div class="container">
+        <div class="header-section">
+            <div>
+                <h2 class="fw-bold mb-1">Preview Processed Data</h2>
+                <p class="text-muted small">Cross-check the data before final saving to the database. <span class="badge-count" th:text="${data.size() + ' Rows Detected'}"></span></p>
+            </div>
+            <form action="/contractor/save-data" method="post">
+                <button type="submit" class="btn btn-save">Confirm & Save to DB</button>
+            </form>
+        </div>
 
-    <h3>Preview Data</h3>
-	<thead>
-    <tr>
-        <th th:each="cell : ${data[0]}" th:text="${cell}"></th>
-    </tr>
-</thead>
-    <!-- Save Button -->
-    <form action="/contractor/save-data" method="post" class="mb-3">
-        <button class="btn btn-success float-end">Save Data</button>
-    </form>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">#</th>
+                            <th th:each="col : ${columns}" th:text="${col.columnName}"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="row, stat : ${data}">
+                            <td class="text-muted small" th:text="${stat.count}"></td>
+                            <td th:each="cell : ${row}">
+                                <span th:text="${cell}"></span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(data)}">
+                            <td th:colspan="${#lists.size(columns) + 1}" class="text-center py-5 text-muted">No data found after applying filters.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <table class="table table-bordered">
-
-    <!-- 🔥 YOUR CUSTOM HEADERS -->
-    <thead>
-        <tr>
-            <th th:each="col : ${columns}"
-                th:text="${col.columnName}">
-            </th>
-        </tr>
-    </thead>
-
-    <!-- 🔥 FILTERED DATA -->
-    <tbody>
-        <tr th:each="row : ${data}">
-            <td th:each="cell : ${row}" th:text="${cell}"></td>
-        </tr>
-    </tbody>
-
-</table>
-</div>
-
+        <div class="mt-4">
+            <button class="btn btn-light" onclick="history.back()">&larr; Back to Configuration</button>
+        </div>
+    </div>
 </body>
 </html>
