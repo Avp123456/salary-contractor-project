@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Column Mapping</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container mt-4">
+
+    <h3>Column Mapping</h3>
+
+    <table class="table table-bordered" id="columnTable">
+        <thead>
+            <tr>
+                <th>Column Name</th>
+                <th>Position</th>
+                <th>Data Type</th>
+                <th>Actual Column</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody id="body">
+        </tbody>
+    </table>
+
+    <button class="btn btn-primary" onclick="addRow()">Add Column</button>
+    <button class="btn btn-success" onclick="saveColumns()">Show Data</button>
+    <button class="btn btn-secondary" onclick="history.back()">
+    ⬅ Previous
+</button>
+
+</div>
+
+
+<script>
+
+function addRow() {
+
+    let row = `
+    <tr>
+        <td><input class="form-control" placeholder="Column Name"></td>
+        <td><input class="form-control" placeholder="Position"></td>
+
+        <td>
+            <select class="form-control">
+                <option>STRING</option>
+                <option>NUMBER</option>
+            </select>
+        </td>
+
+        <td><input class="form-control" placeholder="str1 / num1"></td>
+
+        <td><button class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">X</button></td>
+    </tr>
+    `;
+
+    document.getElementById("body").innerHTML += row;
+}
+
+function saveColumns() {
+
+    let rows = document.querySelectorAll("#body tr");
+    let data = [];
+
+    rows.forEach(r => {
+
+        let cols = r.querySelectorAll("input,select");
+
+        data.push({
+            columnName: cols[0].value,
+            columnPosition: parseInt(cols[1].value),
+            dataType: cols[2].value,
+            actualColumn: cols[3].value
+        });
+
+    });
+
+    fetch("/contractor/save-columns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(() => window.location.href = "/contractor/preview");
+}
+
+</script>
+
+</body>
+</html>

@@ -1,23 +1,30 @@
 package com.project.login.controller;
 
-import com.project.login.entity.Contractor;
-import com.project.login.entity.Employee;
-import com.project.login.service.ContractorService;
-import com.project.login.service.EmployeeExcelService;
-import com.project.login.service.EmployeeService;
-
-import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.project.login.entity.Contractor;
+import com.project.login.entity.Employee;
+import com.project.login.entity.UploadedFileColumns;
+import com.project.login.entity.UploadedFileData;
+import com.project.login.entity.UploadedFiles;
+import com.project.login.repository.UploadedFileColumnsRepository;
+import com.project.login.repository.UploadedFileDataRepository;
+import com.project.login.repository.UploadedFileRepository;
+import com.project.login.service.ContractorService;
+import com.project.login.service.EmployeeService;
+import com.project.login.service.ExcelService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -29,15 +36,32 @@ public class AuthController {
 
     @Autowired
     private EmployeeService employeeService;
+    
+    @Autowired
+    private UploadedFileRepository fileRepo;
 
     @Autowired
-    private EmployeeExcelService excelService;
+    private UploadedFileColumnsRepository columnRepo;
 
+    @Autowired
+    private UploadedFileDataRepository dataRepo;
+
+    @Autowired
+    private ExcelService excelService;
+
+  
+   
+    
     @GetMapping("/")
+    public String root() {
+        return "redirect:/login";
+    }
+
+    @GetMapping("/login")
     public String loginPage() {
         return "login";
     }
-
+    
     @PostMapping("/login")
     public String login(
             @RequestParam String email,
@@ -63,12 +87,20 @@ public class AuthController {
             Employee employee = employeeService.login(email, password);
 
             if (employee != null) {
+                session.setAttribute("loggedInEmployee", employee); // 🔥 ADD THIS LINE
                 return "redirect:/employee/dashboard";
             } else {
                 model.addAttribute("error", "Invalid employee credentials");
                 return "login";
             }
         }
+    }
+ 
+    
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate(); // ✅ destroy session
+        return "redirect:/?logout"; // redirect to login page
     }
 
     @GetMapping("/contractor/dashboard")
@@ -85,10 +117,6 @@ public class AuthController {
     public String employees(Model model, HttpSession session) {
 
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-
-        if (contractor == null) {
-            return "redirect:/";
-        }
 
         List<Employee> list = employeeService.getByContractor(contractor);
         model.addAttribute("employees", list);
@@ -107,10 +135,6 @@ public class AuthController {
 
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
 
-        if (contractor == null) {
-            return "redirect:/";
-        }
-
         employee.setContractor(contractor);
         employeeService.save(employee);
 
@@ -124,13 +148,7 @@ public class AuthController {
     }
 
     @GetMapping("/contractor/edit-employee/{id}")
-    public String editEmployee(@PathVariable Long id, Model model, HttpSession session) {
-
-        Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-
-        if (contractor == null) {
-            return "redirect:/";
-        }
+    public String editEmployee(@PathVariable Long id, Model model) {
 
         Employee emp = employeeService.getById(id);
         model.addAttribute("employee", emp);
@@ -153,245 +171,232 @@ public class AuthController {
         return "contractor/profile";
     }
 
-    @PostMapping("/contractor/upload-excel")
-    public String uploadExcel(@RequestParam("file") MultipartFile file,
-                             @RequestParam(defaultValue = "0") int page,
-                             Model model,
-                             HttpSession session) {
+   
+@PostMapping("/contractor/upload")
+public String uploadFile(@RequestParam("file") MultipartFile file,
+                         HttpSession session) {
 
-        List<List<String>> allData = new ArrayList<>();
-        List<String> headers = new ArrayList<>();
+    List<List<String>> data = excelService.parseExcel(file);
 
-        try {
-            Workbook workbook = new XSSFWorkbook(file.getInputStream());
-            Sheet sheet = workbook.getSheetAt(0);
+    session.setAttribute("excelData", data);
 
-            Row headerRow1 = sheet.getRow(13);
-            Row headerRow2 = sheet.getRow(14);
+    UploadedFiles fileObj = new UploadedFiles();
 
-            int totalCols = headerRow1.getLastCellNum();
+    fileObj.setFileName(file.getOriginalFilename());
+    fileObj.setSize(file.getSize());
+    fileObj.setUploadDate(java.time.LocalDateTime.now());
 
-            // ✅ Read headers
-            for (int i = 0; i < totalCols; i++) {
-                String h1 = getCellValue(headerRow1.getCell(i));
-                String h2 = headerRow2 != null ? getCellValue(headerRow2.getCell(i)) : "";
-                headers.add((h1 + " " + h2).trim());
-            }
-
-            // ✅ Read data rows
-            for (int r = 15; r <= sheet.getLastRowNum(); r++) {
-                Row row = sheet.getRow(r);
-                if (row == null) continue;
-
-                List<String> rowData = new ArrayList<>();
-                for (int i = 0; i < totalCols; i++) {
-                    rowData.add(getCellValue(row.getCell(i)));
-                }
-                allData.add(rowData);
-            }
-
-            workbook.close();
-
-            List<List<String>> cleanedData = new ArrayList<>();
-
-            int empNoIndex = -1;
-            int empNameIndex = -1;
-            int srNoIndex = -1;
-
-            // ✅ Find indexes
-            for (int i = 0; i < headers.size(); i++) {
-                String h = headers.get(i).toLowerCase();
-
-                if (h.contains("employee no")) empNoIndex = i;
-                if (h.contains("name")) empNameIndex = i;
-
-                if (h.contains("sr") && h.contains("no")) {
-                    srNoIndex = i;
-                }
-            }
-
-            // ✅ Clean rows
-            for (List<String> row : allData) {
-
-                // 🔥 REMOVE only if Sr No column EXACTLY "Group Total :"
-                if (srNoIndex != -1 && row.size() > srNoIndex) {
-                    String srValue = row.get(srNoIndex);
-
-                    if (srValue != null) {
-                        String trimmed = srValue.trim();
-
-                        // ✅ STRICT MATCH (case-insensitive)
-                        if (trimmed.equalsIgnoreCase("Group Total :")) {
-                            continue; // remove only this row
-                        }
-                    }
-                }
-
-                // 🔥 CHECK if row is TOTAL row (any column contains "total")
-                boolean isTotalRow = false;
-                for (String cell : row) {
-                    if (cell != null && cell.toLowerCase().contains("total")) {
-                        isTotalRow = true;
-                        break;
-                    }
-                }
-
-                // ✅ Skip empty employee rows BUT keep total rows
-                String empNo = (empNoIndex != -1 && row.size() > empNoIndex)
-                        ? row.get(empNoIndex) : "";
-
-                String empName = (empNameIndex != -1 && row.size() > empNameIndex)
-                        ? row.get(empNameIndex) : "";
-
-                if (!isTotalRow) {
-                    if ((empNo == null || empNo.trim().isEmpty()) &&
-                        (empName == null || empName.trim().isEmpty())) {
-                        continue;
-                    }
-                }
-
-                cleanedData.add(row);
-            }
-
-            allData = cleanedData;
-
-            // ✅ COLUMN FILTER
-            List<Integer> columnsToKeep = new ArrayList<>();
-
-            for (int col = 0; col < headers.size(); col++) {
-
-                String header = headers.get(col).toLowerCase();
-
-                if (header.contains("designation") ||
-                    header.contains("joining date") ||
-                    header.contains("joining")) {
-                    continue;
-                }
-
-                boolean isEmpty = true;
-
-                for (List<String> row : allData) {
-                    if (col < row.size()) {
-                        String val = row.get(col);
-                        if (val != null && !val.trim().isEmpty()) {
-                            isEmpty = false;
-                            break;
-                        }
-                    }
-                }
-
-                // ✅ KEEP column if ANY value exists
-                if (!isEmpty) {
-                    columnsToKeep.add(col);
-                }
-            }
-
-            // ✅ Apply filtered columns
-            List<String> filteredHeaders = new ArrayList<>();
-            for (int col : columnsToKeep) {
-                filteredHeaders.add(headers.get(col));
-            }
-
-            List<List<String>> filteredData = new ArrayList<>();
-
-            for (List<String> row : allData) {
-                List<String> newRow = new ArrayList<>();
-                for (int col : columnsToKeep) {
-                    newRow.add(col < row.size() ? row.get(col) : "");
-                }
-                filteredData.add(newRow);
-            }
-
-            // ✅ Store in session
-            session.setAttribute("headers", filteredHeaders);
-            session.setAttribute("fullData", filteredData);
-
-            return getPaginatedData(page, model, session);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            model.addAttribute("error", "Failed to process Excel file: " + e.getMessage());
-            return "redirect:/contractor/dashboard";
-        }
-    }
-
-   @GetMapping("/contractor/reports")
-public String getPaginatedData(@RequestParam(defaultValue = "0") int page,
-                              Model model,
-                              HttpSession session) {
-
-    List<List<String>> allData =
-            (List<List<String>>) session.getAttribute("fullData");
-
-    List<String> headers =
-            (List<String>) session.getAttribute("headers");
-
-    // ✅ FIX: handle null safely
-    if (allData == null || headers == null) {
-        model.addAttribute("headers", new ArrayList<>());
-        model.addAttribute("data", new ArrayList<>());
-        model.addAttribute("currentPage", 0);
-        model.addAttribute("totalPages", 0);
-        return "contractor/reports";
-    }
-
-    int pageSize = 10;
-    int start = page * pageSize;
-    int end = Math.min(start + pageSize, allData.size());
-
-    List<List<String>> paginatedData =
-            allData.isEmpty() ? new ArrayList<>() : allData.subList(start, end);
-
-    int totalPages =
-            allData.isEmpty() ? 0 : (int) Math.ceil((double) allData.size() / pageSize);
-
-    model.addAttribute("headers", headers);
-    model.addAttribute("data", paginatedData);
-    model.addAttribute("currentPage", page);
-    model.addAttribute("totalPages", totalPages);
-
-    return "contractor/reports";
-}
-
-    private String getCellValue(Cell cell) {
-
-        if (cell == null) return "";
-
-        switch (cell.getCellType()) {
-
-            case STRING:
-                return cell.getStringCellValue();
-
-            case NUMERIC:
-                return String.valueOf((long) cell.getNumericCellValue());
-
-            case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-
-            case FORMULA:
-                return cell.getCellFormula();
-
-            default:
-                return "";
-        }
-    }
-
-    @PostMapping("/contractor/save-excel")
-public String saveExcel(HttpSession session) {
-
-    List<List<String>> data =
-            (List<List<String>>) session.getAttribute("fullData");
-
-    List<String> headers =
-            (List<String>) session.getAttribute("headers");
-
-    if (data == null || data.isEmpty()) {
-        return "redirect:/contractor/reports";
-    }
-
-    // ✅ FIXED
-    excelService.saveAll(headers, data);
+    fileRepo.save(fileObj);
 
     return "redirect:/contractor/reports";
 }
+    
+    @GetMapping("/contractor/reports")
+    public String reports(Model model) {
+
+        model.addAttribute("files", fileRepo.findAll());
+
+        return "contractor/reports";
+    }
+    
+    
+    
+   @PostMapping("/contractor/save-columns")
+@ResponseBody
+public String saveColumns(@RequestBody List<UploadedFileColumns> cols,
+                         HttpSession session) {
+
+    Long fileId = (Long) session.getAttribute("fileId");
+
+    // 🔥 ADD THIS LINE (IMPORTANT)
+    columnRepo.deleteByFileId(fileId);
+
+    for (UploadedFileColumns c : cols) {
+        c.setFileId(fileId);
+    }
+
+    columnRepo.saveAll(cols);
+
+    return "OK";
 }
+    
+    @PostMapping("/contractor/save-data")
+    public String saveData(HttpSession session) {
+
+        List<List<String>> data =
+                (List<List<String>>) session.getAttribute("excelData");
+
+        Long fileId = (Long) session.getAttribute("fileId");
+
+        List<UploadedFileColumns> columns =
+                columnRepo.findByFileId(fileId);
+
+        for (List<String> row : data) {
+
+            UploadedFileData d = new UploadedFileData();
+            d.setFileId(fileId);
+
+            for (UploadedFileColumns col : columns) {
+
+                int pos = col.getColumnPosition();
+                String value = pos < row.size() ? row.get(pos) : "";
+
+                if ("STRING".equalsIgnoreCase(col.getDataType())) {
+                    setString(d, col.getActualColumn(), value);
+                } else {
+                    setNumber(d, col.getActualColumn(), value);
+                }
+            }
+
+            dataRepo.save(d);
+        }
+
+        return "redirect:/contractor/reports";
+    }
+    
+    
+    
+    private void setString(UploadedFileData d, String col, String val) {
+
+        switch (col) {
+            case "str1": d.setStr1(val); break;
+            case "str2": d.setStr2(val); break;
+        }
+    }
+
+    private void setNumber(UploadedFileData d, String col, String val) {
+
+        Double num = 0.0;
+
+        try {
+            num = val == null || val.isEmpty() ? 0 : Double.parseDouble(val);
+        } catch (Exception e) {}
+
+        switch (col) {
+            case "num1": d.setNum1(num); break;
+            case "num2": d.setNum2(num); break;
+        }
+    }
+    
+    @GetMapping("/contractor/columns")
+    public String columns(@RequestParam Long fileId, HttpSession session) {
+
+        session.setAttribute("fileId", fileId);
+
+        return "contractor/columns";
+    }
+    
+    @GetMapping("/contractor/delete-file/{id}")
+    public String deleteFile(@PathVariable Long id) {
+        fileRepo.deleteById(id);
+        return "redirect:/contractor/reports";
+    }	
+    
+    
+  @GetMapping("/contractor/preview")
+public String preview(Model model, HttpSession session) {
+
+    List<List<String>> excelData =
+        (List<List<String>>) session.getAttribute("excelData");
+
+    Long fileId = (Long) session.getAttribute("fileId");
+
+    List<UploadedFileColumns> columns =
+        columnRepo.findByFileId(fileId);
+
+    // 🔥 FILTERED DATA
+    List<List<String>> filteredData = new java.util.ArrayList<>();
+
+    for (List<String> row : excelData) {
+
+        List<String> newRow = new java.util.ArrayList<>();
+
+        for (UploadedFileColumns col : columns) {
+
+            int pos = col.getColumnPosition();
+
+            String value = pos < row.size() ? row.get(pos) : "";
+
+            newRow.add(value);
+        }
+
+        filteredData.add(newRow);
+    }
+
+    model.addAttribute("data", filteredData);
+    model.addAttribute("columns", columns);
+
+    return "contractor/preview";
+}  
+    @GetMapping("/contractor/config")
+    public String config(@RequestParam Long fileId, Model model, HttpSession session) {
+
+        session.setAttribute("fileId", fileId);
+        model.addAttribute("fileId", fileId);
+
+        return "contractor/config";
+    }
+    
+@PostMapping("/contractor/save-config")
+public String saveConfig(
+        @RequestParam Long fileId,
+        @RequestParam String headerExists,
+        @RequestParam int headerLines,
+        @RequestParam String parseHeader,
+        @RequestParam String trailerExists,
+        @RequestParam int trailerLines,
+        @RequestParam String parseTrailer,
+        HttpSession session) {
+
+    List<List<String>> original =
+            (List<List<String>>) session.getAttribute("excelData");
+
+    // 🔥 MAKE COPY (IMPORTANT)
+    List<List<String>> data = new java.util.ArrayList<>();
+    for (List<String> row : original) {
+        data.add(new java.util.ArrayList<>(row));
+    }
+
+    // ✅ HEADER REMOVE
+    if ("YES".equals(headerExists) && "NO".equals(parseHeader)) {
+        for (int i = 0; i < headerLines && !data.isEmpty(); i++) {
+            data.remove(0);
+        }
+    }
+
+    // ✅ TRAILER REMOVE
+    if ("YES".equals(trailerExists) && "NO".equals(parseTrailer)) {
+
+        int lastIndex = data.size() - 1;
+
+        // find last non-empty row
+        for (int i = data.size() - 1; i >= 0; i--) {
+            boolean empty = true;
+            for (String cell : data.get(i)) {
+                if (cell != null && !cell.trim().isEmpty()) {
+                    empty = false;
+                    break;
+                }
+            }
+            if (!empty) {
+                lastIndex = i;
+                break;
+            }
+        }
+
+        for (int i = 0; i < trailerLines && lastIndex >= 0; i++) {
+            data.remove(lastIndex);
+            lastIndex--;
+        }
+        if (original == null) {
+            return "redirect:/contractor/reports";
+        }
+    }
+
+    // 🔥 SAVE BACK
+    session.setAttribute("excelData", data);
+
+    return "redirect:/contractor/columns?fileId=" + fileId;
+}
+}
+

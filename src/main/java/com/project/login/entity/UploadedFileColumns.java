@@ -1,0 +1,63 @@
+package com.project.login.entity;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+	@Entity
+	@Table(name = "uploaded_file_columns")
+	public class UploadedFileColumns {
+
+	    @Id
+	    @GeneratedValue(strategy = GenerationType.IDENTITY)
+	    private Long id;
+
+	    private Long fileId;
+
+	    private String columnName;       // user given name
+	    private int columnPosition;      // excel index
+	    private String dataType;         // STRING / NUMBER
+	    private String actualColumn;     // str1 / num1
+		public Long getId() {
+			return id;
+		}
+		public void setId(Long id) {
+			this.id = id;
+		}
+		public Long getFileId() {
+			return fileId;
+		}
+		public void setFileId(Long fileId) {
+			this.fileId = fileId;
+		}
+		public String getColumnName() {
+			return columnName;
+		}
+		public void setColumnName(String columnName) {
+			this.columnName = columnName;
+		}
+		public int getColumnPosition() {
+			return columnPosition;
+		}
+		public void setColumnPosition(int columnPosition) {
+			this.columnPosition = columnPosition;
+		}
+		public String getDataType() {
+			return dataType;
+		}
+		public void setDataType(String dataType) {
+			this.dataType = dataType;
+		}
+		public String getActualColumn() {
+			return actualColumn;
+		}
+		public void setActualColumn(String actualColumn) {
+			this.actualColumn = actualColumn;
+		}
+	    
+	    
+	}
+

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>File Configuration</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+.card {
+    max-width: 700px;
+    margin: auto;
+    margin-top: 40px;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h4 class="mb-3">Header / Trailer Configuration</h4>
+
+<form action="/contractor/save-config" method="post">
+
+
+	<input type="hidden" name="fileId" th:value="${fileId}">
+    <!-- HEADER -->
+    <div class="mb-3">
+        <label>Header Exists</label>
+        <select class="form-control" name="headerExists" id="headerExists" onchange="toggleHeader()">
+            <option value="NO">No</option>
+            <option value="YES">Yes</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Header Lines</label>
+        <input type="number" name="headerLines" id="headerLines" value="0" class="form-control">
+    </div>
+
+    <div class="mb-3">
+        <label>Parse Header</label>
+        <select class="form-control" name="parseHeader" id="parseHeader">
+            <option value="NO">No</option>
+            <option value="YES">Yes</option>
+        </select>
+    </div>
+
+    <!-- TRAILER -->
+    <div class="mb-3">
+        <label>Trailer Exists</label>
+        <select class="form-control" name="trailerExists" id="trailerExists" onchange="toggleTrailer()">
+            <option value="NO">No</option>
+            <option value="YES">Yes</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Trailer Lines</label>
+        <input type="number" name="trailerLines" id="trailerLines" value="0" class="form-control">
+    </div>
+
+    <div class="mb-3">
+        <label>Parse Trailer</label>
+        <select class="form-control" name="parseTrailer" id="parseTrailer">
+            <option value="NO">No</option>
+            <option value="YES">Yes</option>
+        </select>
+    </div>
+
+    <button class="btn btn-success w-100">Next ➡</button>
+
+</form>
+
+</div>
+
+<script>
+
+function toggleHeader() {
+    let val = document.getElementById("headerExists").value;
+    document.getElementById("headerLines").disabled = val === "NO";
+    document.getElementById("parseHeader").disabled = val === "NO";
+}
+
+function toggleTrailer() {
+    let val = document.getElementById("trailerExists").value;
+    document.getElementById("trailerLines").disabled = val === "NO";
+    document.getElementById("parseTrailer").disabled = val === "NO";
+}
+
+</script>
+
+</body>
+</html>

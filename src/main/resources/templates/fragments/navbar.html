@@ -1,5 +1,31 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+<style>
+.logout-btn {
+    background-color: #ff3b3b;
+    color: black;
+    padding: 6px 18px;
+    border-radius: 10px;
+    border: 2px solid black;
+    font-weight: 600;
+    text-decoration: none; /* remove underline */
+    display: inline-block;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+}
+
+/* 🔥 Hover animation */
+.logout-btn:hover {
+    background-color: #ff1a1a;
+    color: white;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 15px rgba(255, 0, 0, 0.4);
+}
+</style>
+</head>
+
 <body>
 
 <!-- ✅ NAVBAR FRAGMENT -->
@@ -37,12 +63,15 @@
           <a class="nav-link" href="/contractor/payments">Payments</a>
         </li>
 
-        
-
         <li class="nav-item">
           <a class="nav-link" href="/contractor/profile">Profile</a>
         </li>
 
+     <li class="nav-item ms-2 d-flex align-items-center">
+    <a href="/logout" class="btn btn-danger btn-sm" style="font-weight: 600;">
+        Logout
+    </a>
+</li>
       </ul>
     </div>
 
