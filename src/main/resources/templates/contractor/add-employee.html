@@ -7,13 +7,14 @@
 
 <body>
 
-<div th:replace="fragments/navbar :: navbar"></div>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <div class="container mt-4">
 
     <h3>Add Employee</h3>
 
     <form th:action="@{/contractor/save-employee}" method="post" th:object="${employee}">
+    <input type="hidden" th:field="*{employeeId}">
 
         <div class="mb-3">
             <label>Name</label>
@@ -30,7 +31,17 @@
             <input type="password" th:field="*{password}" class="form-control" required>
         </div>
 
-        <button class="btn btn-success">Save Employee</button>
+     
+
+<div class="mt-3">
+    <button class="btn btn-success"
+            th:text="${employee.employeeId} != null ? 'Update' : 'Save'">
+    </button>
+
+    <a href="/contractor/employees" class="btn btn-secondary ms-2">
+        Cancel
+    </a>
+</div>
 
     </form>
 

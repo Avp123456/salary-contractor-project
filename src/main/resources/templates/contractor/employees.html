@@ -7,7 +7,7 @@
 
 <body>
 
-<div th:replace="fragments/navbar :: navbar"></div>
+<div th:replace="~{fragments/navbar :: navbar}"></div>
 
 <div class="container mt-4">
     <h3>Employees</h3>
@@ -30,13 +30,44 @@
 		    <td th:text="${emp.name}"></td>
 		    <td th:text="${emp.email}"></td>
 		    <td>
-		        <button class="btn btn-warning btn-sm">Edit</button>
-		        <button class="btn btn-danger btn-sm">Delete</button>
-		    </td>
+<a th:href="@{'/contractor/edit-employee/' + ${emp.employeeId}}"
+   class="btn btn-warning btn-sm">Edit</a>
+   <button class="btn btn-danger btn-sm"
+        th:onclick="'confirmDelete(' + ${emp.employeeId} + ')'">
+    Delete
+</button>		    </td>
 		</tr>
 		</tbody>
     </table>
 </div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function confirmDelete(id) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+
+        width: '350px',  
+      
+        padding: '1.5rem',      // optional spacing
+        
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!',
+
+        customClass: {
+            popup: 'small-popup'   // optional for more control
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/contractor/delete-employee/' + id;
+        }
+    });
+}
+</script>
 </body>
 </html>

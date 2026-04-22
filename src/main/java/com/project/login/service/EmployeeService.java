@@ -33,4 +33,12 @@ public class EmployeeService {
     public List<Employee> getByContractor(Contractor contractor) {
         return repo.findByContractor(contractor);
     }
+        
+        public void deleteById(Long id) {
+            repo.deleteById(id);
+        
+    }
+        public Employee getById(Long id) {
+            return repo.findById(id).orElse(null);
+        }
 }

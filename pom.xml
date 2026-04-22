@@ -6,7 +6,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- ✅ FIX: Spring Boot version -->
+    <!-- Spring Boot Parent -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -26,84 +26,90 @@
 
     <dependencies>
 
-    <!-- ✅ Spring Web -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
+        <!-- Spring Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
 
-    <!-- ✅ Thymeleaf -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-thymeleaf</artifactId>
-    </dependency>
+        <!-- Thymeleaf -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
 
-    <!-- ✅ Thymeleaf Security -->
-    <dependency>
-        <groupId>org.thymeleaf.extras</groupId>
-        <artifactId>thymeleaf-extras-springsecurity6</artifactId>
-    </dependency>
+        <!-- Thymeleaf Security -->
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+        </dependency>
 
-    <!-- ✅ Spring Security -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-security</artifactId>
-    </dependency>
+        <!-- Spring Security -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
 
-    <!-- ✅ JPA -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
+        <!-- JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
 
-    <!-- ✅ PostgreSQL -->
-    <dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>42.7.3</version>
+        <!-- PostgreSQL ✅ FIXED -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.3</version>
+        </dependency>
+
+        <!-- Apache POI (Excel) ✅ ONLY ONCE -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+
+        <!-- PDF -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>kernel</artifactId>
+            <version>7.1.17</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>layout</artifactId>
+            <version>7.1.17</version>
+        </dependency>
+
+        <!-- Mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- DevTools -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
 </dependency>
 
-    <!-- ✅ PDF -->
-    <dependency>
-        <groupId>com.itextpdf</groupId>
-        <artifactId>kernel</artifactId>
-        <version>7.1.17</version>
-    </dependency>
+    </dependencies>
 
-    <dependency>
-        <groupId>com.itextpdf</groupId>
-        <artifactId>layout</artifactId>
-        <version>7.1.17</version>
-    </dependency>
-
-    <!-- ✅ Mail -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-mail</artifactId>
-    </dependency>
-
-    <!-- ✅ Excel -->
-    <dependency>
-        <groupId>org.apache.poi</groupId>
-        <artifactId>poi-ooxml</artifactId>
-        <version>5.2.5</version>
-    </dependency>
-
-    <!-- ✅ DevTools -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-devtools</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-
-    <!-- ✅ Lombok -->
-    <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <optional>true</optional>
-    </dependency>
-
-</dependencies>
     <build>
         <plugins>
 
