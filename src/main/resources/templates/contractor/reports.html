@@ -18,7 +18,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.5rem;
         }
         .card {
             border: none;
@@ -35,25 +38,28 @@
         .table th {
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             letter-spacing: 0.05em;
             color: #64748b;
-            padding: 16px;
+            padding: 12px 16px;
             border-bottom: 1px solid #e2e8f0;
         }
         .table td {
-            padding: 16px;
+            padding: 10px 16px;
             vertical-align: middle;
             color: #334155;
             border-bottom: 1px solid #f1f5f9;
+            font-size: 0.85rem;
         }
         .btn-upload {
             background-color: #2563eb;
             color: white;
             border-radius: 8px;
-            padding: 10px 20px;
+            padding: 6px 12px;
             font-weight: 500;
+            font-size: 0.85rem;
             transition: all 0.2s;
+            border: none;
         }
         .btn-upload:hover {
             background-color: #1d4ed8;
@@ -62,12 +68,12 @@
         }
         .action-btn {
             display: inline-block;
-            padding: 6px 14px;
+            padding: 4px 10px;
             border-radius: 6px;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             font-weight: 500;
             transition: all 0.2s;
-            margin: 2px;
+            margin: 1px;
         }
         .btn-proceed {
             background-color: #ecfdf5;
@@ -124,14 +130,14 @@
                 </thead>
                 <tbody>
                     <tr th:each="f : ${files}">
-                        <td class="fw-medium">
-                            <span th:text="${f.fileName}"></span>
-                            <span th:if="${f.fileContent == null}" class="badge bg-warning text-dark ms-2 small" style="font-size: 0.65rem;">Old (Re-upload)</span>
+                        <td class="fw-medium py-2">
+                            <span th:text="${f.fileName}" style="font-size: 0.9rem;"></span>
+                            <span th:if="${f.fileContent == null}" class="badge bg-warning text-dark ms-2" style="font-size: 0.6rem;">Old (Re-upload)</span>
                         </td>
-                        <td th:text="${f.size + ' bytes'}"></td>
+                        <td class="text-nowrap" th:text="${#numbers.formatDecimal(f.size / 1024.0 / 1024.0, 1, 2) + ' MB'}"></td>
                         <td th:text="${#temporals.format(f.uploadDate, 'dd MMM yyyy, HH:mm')}"></td>
                         <td class="text-center">
-                            <a th:href="@{'/contractor/columns?fileId=' + ${f.id}}" class="action-btn btn-proceed me-3 text-decoration-none">
+                            <a th:href="@{'/contractor/columns?fileId=' + ${f.id}}" class="action-btn btn-proceed me-1 text-decoration-none">
                                 Proceed &#10142;
                             </a>
                             <a href="#" class="action-btn btn-delete text-decoration-none" 

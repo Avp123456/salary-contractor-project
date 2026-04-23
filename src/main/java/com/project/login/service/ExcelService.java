@@ -55,34 +55,49 @@ public class ExcelService {
     }
 
     private String getCellValue(Cell cell) {
-
         if (cell == null) return "";
-
+        
+        String value = "";
         switch (cell.getCellType()) {
-
             case STRING:
-                return cell.getStringCellValue().trim();
-
+                value = cell.getStringCellValue();
+                break;
             case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getDateCellValue().toString();
+                if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
+                    value = cell.getDateCellValue().toString();
                 } else {
-                    // remove .0 from numbers
-                    double num = cell.getNumericCellValue();
-                    if (num == (long) num)
-                        return String.valueOf((long) num);
-                    else
-                        return String.valueOf(num);
+                    double val = cell.getNumericCellValue();
+                    value = new java.math.BigDecimal(String.valueOf(val)).toPlainString();
                 }
-
+                break;
             case BOOLEAN:
-                return String.valueOf(cell.getBooleanCellValue());
-
+                value = String.valueOf(cell.getBooleanCellValue());
+                break;
             case FORMULA:
-                return cell.getCellFormula();
-
+                try {
+                    org.apache.poi.ss.usermodel.FormulaEvaluator evaluator = cell.getSheet().getWorkbook().getCreationHelper().createFormulaEvaluator();
+                    org.apache.poi.ss.usermodel.CellValue cellValue = evaluator.evaluate(cell);
+                    switch (cellValue.getCellType()) {
+                        case STRING: value = cellValue.getStringValue(); break;
+                        case NUMERIC: 
+                            value = new java.math.BigDecimal(String.valueOf(cellValue.getNumberValue())).toPlainString();
+                            break;
+                        case BOOLEAN: value = String.valueOf(cellValue.getBooleanValue()); break;
+                        default: value = ""; break;
+                    }
+                } catch (Exception e) {
+                    value = cell.getCellFormula();
+                }
+                break;
             default:
-                return "";
+                value = "";
+                break;
         }
+        
+        // Final cleanup: remove .0 from integers and remove any lingering commas
+        if (value.endsWith(".0")) {
+            value = value.substring(0, value.length() - 2);
+        }
+        return value.replace(",", "");
     }
 }

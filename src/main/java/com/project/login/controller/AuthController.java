@@ -346,11 +346,14 @@ public class AuthController {
             System.out.println("File found in DB. Content exists? " + (file.getFileContent() != null));
         }
 
-        if (excelData == null && file != null && file.getFileContent() != null) {
-            System.out.println("Attempting to re-parse file content...");
+        // Always re-parse if we have the bytes in the DB to ensure latest logic (like comma removal) is applied
+        if (file != null && file.getFileContent() != null) {
             excelData = excelService.parseExcel(file.getFileContent());
-            System.out.println("Re-parsed Excel size: " + (excelData != null ? excelData.size() : "NULL"));
             session.setAttribute("excelData", excelData);
+        }
+        
+        if (excelData == null) {
+            return "redirect:/contractor/reports?error=Excel data not found. Please re-upload.";
         }
         
         List<UploadedFileColumns> columns = columnRepo.findByFileId(fileId);
@@ -366,6 +369,17 @@ public class AuthController {
 
             for (int i = start; i < end && i < excelData.size(); i++) {
                 List<String> row = excelData.get(i);
+                
+                // Check if the whole original row is empty
+                boolean originalRowEmpty = true;
+                for (String s : row) {
+                    if (s != null && !s.trim().isEmpty()) {
+                        originalRowEmpty = false;
+                        break;
+                    }
+                }
+                if (originalRowEmpty) continue; // Skip truly empty rows
+
                 List<String> newRow = new java.util.ArrayList<>();
                 for (UploadedFileColumns col : columns) {
                     if (col.isParse() != null && col.isParse()) {
@@ -374,9 +388,7 @@ public class AuthController {
                         newRow.add(value);
                     }
                 }
-                boolean allEmpty = true;
-                for(String s : newRow) if(s != null && !s.trim().isEmpty()) { allEmpty = false; break; }
-                if(!allEmpty) filteredData.add(newRow);
+                filteredData.add(newRow);
             }
             System.out.println("Filtered Data Rows: " + filteredData.size());
         } else {
