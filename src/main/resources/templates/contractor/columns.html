@@ -32,11 +32,11 @@
                 <div class="row">
                     <div class="col-md-3">
                         <label class="form-label small fw-bold text-muted">Header Rows to Skip</label>
-                        <input type="number" id="headerCount" class="form-control" value="0" min="0">
+                        <input type="number" id="headerCount" class="form-control" th:value="${headerCount}" min="0">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-bold text-muted">Trailer Rows to Skip</label>
-                        <input type="number" id="trailerCount" class="form-control" value="0" min="0">
+                        <input type="number" id="trailerCount" class="form-control" th:value="${trailerCount}" min="0">
                     </div>
                     <div class="col-md-6 d-flex align-items-end">
                         <p class="small text-muted mb-2">Rows will be removed from the top (header) and from the last row containing data (trailer).</p>
@@ -55,7 +55,25 @@
                     </tr>
                 </thead>
                 <tbody id="columnBody">
-                    <!-- Rows added dynamically -->
+                    <tr th:each="col : ${existingColumns}">
+                        <td><input type="text" class="form-control" th:value="${col.columnName}" placeholder="e.g. Employee Name"></td>
+                        <td>
+                            <select class="form-select">
+                                <option value="STRING" th:selected="${col.dataType == 'STRING'}">STRING</option>
+                                <option value="NUMBER" th:selected="${col.dataType == 'NUMBER'}">NUMBER</option>
+                            </select>
+                        </td>
+                        <td><input type="number" class="form-control" th:value="${col.columnPosition}" placeholder="e.g. 1 for A" min="1"></td>
+                        <td>
+                            <select class="form-select">
+                                <option value="true" th:selected="${col.parse}">YES</option>
+                                <option value="false" th:selected="${!col.parse}">NO</option>
+                            </select>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-outline-danger btn-sm" onclick="this.parentElement.parentElement.remove()">Delete</button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
             <button class="btn btn-add" onclick="addRow()">+ Add Column Mapping</button>
@@ -95,8 +113,11 @@
             tbody.appendChild(row);
         }
 
-        // Add initial row
-        addRow();
+        // Add initial row ONLY if no existing columns
+        const existingCount = [[${existingColumns.size()}]];
+        if (existingCount === 0) {
+            addRow();
+        }
 
         function saveAndShow() {
             const rows = document.querySelectorAll('#columnBody tr');

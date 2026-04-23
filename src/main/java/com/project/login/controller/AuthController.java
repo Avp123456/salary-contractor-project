@@ -313,8 +313,21 @@ public class AuthController {
     
     @GetMapping("/contractor/columns")
     public String columns(@RequestParam Long fileId, Model model, HttpSession session) {
-        session.setAttribute("fileId", fileId);
+        Long contractorId = getCurrentContractorId(session);
+        UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+        
+        if (file == null || !file.getContractorId().equals(contractorId)) {
+            return "redirect:/contractor/reports";
+        }
+
+        List<UploadedFileColumns> existingColumns = columnRepo.findByFileIdAndContractorId(fileId, contractorId);
+        
         model.addAttribute("fileId", fileId);
+        model.addAttribute("headerCount", file.getHeaderCount() != null ? file.getHeaderCount() : 0);
+        model.addAttribute("trailerCount", file.getTrailerCount() != null ? file.getTrailerCount() : 0);
+        model.addAttribute("existingColumns", existingColumns);
+        
+        session.setAttribute("fileId", fileId);
         return "contractor/columns";
     }
     
