@@ -55,16 +55,10 @@
     </div>
 
     <div class="payslip-container" id="payslipContent">
-        <!-- Header -->
-        <div class="header-section">
-            <div class="company-info">
-                <h1 th:text="${contractorName}">SMARTRECON TECHNOLOGIES PVT. LTD.</h1>
-                <p>Salary Slip</p>
-            </div>
-        </div>
+
         
         <div class="payslip-title">
-            Payslip for <span th:text="${#temporals.format(uploadDate, 'MMM-yy')}">Mar-26</span>
+            Payslip for <span th:text="${monthYearUi}">Mar-26</span>
         </div>
 
         <!-- Employee Details -->
@@ -167,9 +161,16 @@
     <script>
         function downloadPDF() {
             const element = document.getElementById('payslipContent');
+            
+            // Clean up the employee name by replacing spaces with underscores for the filename
+            const rawEmpName = '[[${employeeName}]]';
+            const cleanEmpName = rawEmpName.replace(/\s+/g, '_');
+            
+            const pdfFileName = '[[${employeeCode}]]_' + cleanEmpName + '_[[${monthYear}]].pdf';
+
             const opt = {
                 margin:       [10, 10, 10, 10],
-                filename:     'Payslip_[[${employeeName}]].pdf',
+                filename:     pdfFileName,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' } // Landscape might fit the tables better like the image

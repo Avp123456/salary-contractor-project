@@ -35,6 +35,15 @@
         .swal2-compact .swal2-icon { margin: -5px auto 2px; transform: scale(0.45); transform-origin: center top; }
         .swal2-compact .swal2-title { font-size: 0.92rem; padding: 0; margin: 0; }
         .swal2-compact .swal2-html-container { font-size: 0.76rem; margin: 3px 0 0; }
+        .status-dropdown {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            text-align: center;
+            text-align-last: center;
+            background-image: none !important;
+            padding-right: 12px !important; /* Remove Bootstrap's extra right padding for the arrow */
+        }
     </style>
 </head>
 <body>
@@ -69,26 +78,28 @@
                                 <select class="form-select form-select-sm status-dropdown" 
                                         th:data-id="${p.id}"
                                         onchange="updateStatus(this)"
-                                        style="width: 110px; font-size: 0.8rem; font-weight: 500;"
-                                        th:classappend="${p.status == 'Paid' ? 'text-success border-success' : 'text-warning border-warning'}"
+                                        style="width: 100px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; padding: 4px; cursor: pointer; border: none; color: white;"
+                                        th:styleappend="${p.status == 'Paid' ? 'background-color: #10b981;' : 'background-color: #f59e0b;'}"
                                         th:disabled="${p.payslipGenerated}">
-                                    <option value="Pending" th:selected="${p.status == 'Pending'}">Pending</option>
-                                    <option value="Paid" th:selected="${p.status == 'Paid'}">Paid</option>
+                                    <option value="Pending" th:selected="${p.status == 'Pending'}" style="background-color: white; color: #333;">Pending</option>
+                                    <option value="Paid" th:selected="${p.status == 'Paid'}" style="background-color: white; color: #333;">Paid</option>
                                 </select>
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-view" th:onclick="'openSalaryModal(' + ${p.id} + ')'">View Structure</button>
+                                <button class="btn btn-view btn-sm px-3" style="font-size: 13px;" th:onclick="'openSalaryModal(' + ${p.id} + ')'">View Structure</button>
                                 
                                 <button th:if="${!p.payslipGenerated}" 
-                                        class="btn btn-pay" 
+                                        class="btn btn-pay btn-sm px-3 ms-1" 
+                                        style="font-size: 13px;"
                                         th:onclick="'generatePayslip(' + ${p.id} + ')'"
                                         th:data-viewed="${p.structureViewed}"
                                         th:id="'btn-payslip-' + ${p.id}">Generate Payslip</button>
                                         
                                 <button th:if="${p.payslipGenerated}" 
-                                        class="btn btn-pay btn-secondary disabled" 
-                                        style="background-color: #94a3b8; border: none; cursor: not-allowed;"
-                                        disabled>Payslip Done</button>
+                                        class="btn btn-primary btn-sm px-3 ms-1" 
+                                        style="background-color: #0f172a; border: none; font-size: 13px;"
+                                        th:onclick="'showPayslipOptions(' + ${p.id} + ')'"
+                                        th:id="'btn-payslip-' + ${p.id}">View Payslip</button>
                             </td>
                         </tr>
                         <tr th:if="${payments == null || payments.empty}">
@@ -273,11 +284,11 @@
 
                 if (await response.text() === 'OK') {
                     if (status === 'Paid') {
-                        selectElement.classList.replace('text-warning', 'text-success');
-                        selectElement.classList.replace('border-warning', 'border-success');
+                        selectElement.style.backgroundColor = '#10b981';
+                        selectElement.style.color = 'white';
                     } else {
-                        selectElement.classList.replace('text-success', 'text-warning');
-                        selectElement.classList.replace('border-success', 'border-warning');
+                        selectElement.style.backgroundColor = '#f59e0b';
+                        selectElement.style.color = 'white';
                     }
                 }
             } catch (err) {
@@ -329,41 +340,46 @@
                     // Lock dropdown
                     selectElement.disabled = true;
                     
-                    // Update button UI
-                    btn.innerText = 'Payslip Done';
-                    btn.classList.add('disabled');
-                    btn.style.backgroundColor = '#94a3b8';
+                    // Update button UI to View Payslip
+                    btn.innerText = 'View Payslip';
+                    btn.classList.remove('btn-pay');
+                    btn.classList.add('btn-primary');
+                    btn.style.backgroundColor = '#0f172a';
                     btn.style.border = 'none';
-                    btn.style.cursor = 'not-allowed';
-                    btn.onclick = null;
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = () => showPayslipOptions(id);
 
-                    Swal.fire({
-                        title: 'Payslip Ready!',
-                        html: `
-                            <div style="text-align: center; font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">
-                                Payslip generated successfully. How would you like to share it?
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 8px;">
-                                <a href="/contractor/payslip/${id}" target="_blank" class="btn btn-primary" style="background: #2563eb; color: white; border: none; padding: 10px; border-radius: 8px; text-decoration: none;">
-                                    View & Download PDF
-                                </a>
-                                <button onclick="shareWhatsAppDirect(${id})" class="btn btn-success" style="background: #25D366; color: white; border: none; padding: 10px; border-radius: 8px;">
-                                    Share via WhatsApp
-                                </button>
-                                <button onclick="shareEmailDirect(${id})" class="btn btn-danger" style="background: #ea4335; color: white; border: none; padding: 10px; border-radius: 8px;">
-                                    Share via Email
-                                </button>
-                            </div>
-                        `,
-                        icon: 'success',
-                        showConfirmButton: false,
-                        showCloseButton: true,
-                        width: 320
-                    });
+                    showPayslipOptions(id);
                 }
             } catch (err) {
                 Swal.fire({ title: 'Error', text: 'Failed to generate payslip.', icon: 'error', width: 250, customClass: { popup: 'swal2-compact' } });
             }
+        }
+
+        function showPayslipOptions(id) {
+            Swal.fire({
+                title: 'Payslip Ready!',
+                html: `
+                    <div style="text-align: center; font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">
+                        What would you like to do with this payslip?
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <a href="/contractor/payslip/${id}" target="_blank" class="btn btn-primary" style="background: #2563eb; color: white; border: none; padding: 10px; border-radius: 8px; text-decoration: none;">
+                            View & Download PDF
+                        </a>
+                        <button onclick="shareWhatsAppDirect(${id})" class="btn btn-success" style="background: #25D366; color: white; border: none; padding: 10px; border-radius: 8px;">
+                            Share via WhatsApp
+                        </button>
+                        <button onclick="shareEmailDirect(${id})" class="btn btn-danger" style="background: #ea4335; color: white; border: none; padding: 10px; border-radius: 8px;">
+                            Share via Email
+                        </button>
+                    </div>
+                `,
+                icon: 'success',
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: 320
+            });
         }
 
         function shareWhatsAppDirect(id) {

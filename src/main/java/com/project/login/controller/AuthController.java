@@ -487,13 +487,21 @@ public class AuthController {
                     java.lang.reflect.Method m = UploadedFileData.class.getMethod("get" + col.getActualColumn().substring(0, 1).toUpperCase() + col.getActualColumn().substring(1));
                     Object result = m.invoke(data);
                     if (result != null) {
-                        valStr = result.toString();
+                        valStr = result.toString().trim();
                         if (result instanceof Double) {
                             valNum = (Double) result;
                             isNumber = true;
                         } else if (col.getActualColumn().startsWith("num")) {
                             valNum = Double.parseDouble(valStr.replace(",", ""));
                             isNumber = true;
+                        } else {
+                            // Try parsing string as number to ensure totals work
+                            try {
+                                valNum = Double.parseDouble(valStr.replace(",", ""));
+                                isNumber = true;
+                            } catch (Exception ex) {
+                                isNumber = false;
+                            }
                         }
                     }
                 } catch (Exception e) {}
@@ -512,15 +520,15 @@ public class AuthController {
                         comp.put("isString", true);
                     }
                     
-                    if (colName.contains("DEDUCT") || colName.contains("TDS") || colName.contains("TAX") || colName.contains("PF") || colName.contains("FINE")) {
+                    if (colName.contains("DEDUCT") || colName.contains("TDS") || colName.contains("TAX") || colName.contains("PF") || colName.contains("FINE") || colName.contains("FUND") || colName.contains("ESI") || colName.contains("LOAN") || colName.contains("PROF")) {
                         comp.put("type", "Deductions");
-                        if (isNumber) totalDeductions += valNum;
+                        if (isNumber && !colName.contains("TOTAL")) totalDeductions += valNum;
                     } else if (colName.contains("TOTAL") || colName.contains("PAYABLE") || colName.contains("NET") || colName.contains("AMOUNT")) {
                         comp.put("type", "Total");
                         if (isNumber) totalAmount = valNum;
                     } else {
                         comp.put("type", "Earnings");
-                        if (isNumber) totalEarnings += valNum;
+                        if (isNumber && !colName.contains("TOTAL")) totalEarnings += valNum;
                     }
                     components.add(comp);
                 }
@@ -539,6 +547,15 @@ public class AuthController {
         model.addAttribute("contractorName", contractor.getName());
         model.addAttribute("employeeName", employeeName);
         model.addAttribute("employeeCode", employeeCode);
+        
+        String fileName = file.getFileName();
+        String extractedMonthYear = extractMonthYearFromFileName(fileName);
+        if (extractedMonthYear == null) {
+            extractedMonthYear = java.time.format.DateTimeFormatter.ofPattern("MMM-yyyy").format(file.getUploadDate());
+        }
+        model.addAttribute("monthYear", extractedMonthYear.replace(" ", "_")); // Use underscores for safe PDF naming if needed, or keep spaces. Let's keep original for UI and replace in HTML.
+        model.addAttribute("monthYearUi", extractedMonthYear);
+        
         model.addAttribute("uploadDate", file.getUploadDate());
         model.addAttribute("components", components);
         model.addAttribute("totalAmount", totalAmount);
@@ -546,6 +563,16 @@ public class AuthController {
         model.addAttribute("totalDeductions", totalDeductions);
 
         return "contractor/payslip";
+    }
+
+    private String extractMonthYearFromFileName(String fileName) {
+        if (fileName == null) return null;
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-_\\s]*\\d{2,4}");
+        java.util.regex.Matcher m = p.matcher(fileName);
+        if (m.find()) {
+            return m.group().toUpperCase().replaceAll("[-_\\s]+", " ");
+        }
+        return null;
     }
 
     @GetMapping("/contractor/profile")
