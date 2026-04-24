@@ -39,6 +39,9 @@
     <div th:replace="~{fragments/navbar :: navbar}"></div>
 
     <div class="container">
+        <div class="mb-3">
+            <button class="btn btn-light" style="font-size: 0.85rem;" onclick="history.back()">&larr; Back to History</button>
+        </div>
         <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
             <div style="width: 200px;"></div> <!-- Spacer -->
             <h2 class="fw-bold mb-0 text-dark mx-auto">Mapping Configuration</h2>
@@ -103,8 +106,6 @@
             </table>
         </div>
         
-        <div class="mt-4">
-            <button class="btn btn-light" onclick="history.back()">&larr; Back to History</button>
         </div>
     </div>
 

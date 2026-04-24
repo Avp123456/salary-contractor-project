@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Payslip - [[${employeeName}]]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; padding: 20px; margin: 0; color: #000; }
+        .action-buttons { text-align: center; margin-bottom: 20px; }
+        .btn { padding: 8px 16px; border-radius: 4px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; display: inline-block; margin: 0 5px; text-decoration: none; transition: all 0.2s; color: white; }
+        .btn-download { background: #2563eb; }
+        .btn-whatsapp { background: #25D366; }
+        .btn-email { background: #ea4335; }
+        
+        .payslip-container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border: 1px solid #ccc; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        /* Header */
+        .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .company-info { text-align: center; flex: 1; }
+        .company-info h1 { margin: 0; font-size: 20px; font-weight: 700; text-transform: uppercase; }
+        .company-info p { margin: 4px 0 0 0; font-size: 12px; font-weight: 500; }
+        
+        .payslip-title { text-align: center; font-size: 16px; font-weight: 700; margin-bottom: 15px; text-decoration: underline; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 15px; }
+        th, td { border: 1px solid #000; padding: 6px 10px; vertical-align: top; }
+        
+        /* Details Table */
+        .details-table td { width: 25%; }
+        .details-label { font-weight: 600; }
+        
+        /* Salary Table */
+        .salary-table th { background-color: #f8fafc; font-weight: 700; text-align: left; }
+        .salary-table td.amount-col { text-align: right; width: 15%; }
+        
+        .net-pay-table td { padding: 8px 10px; }
+        .net-pay-amount { font-weight: 700; font-size: 14px; }
+        
+        .footer { text-align: center; font-size: 11px; margin-top: 20px; font-weight: 500; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .payslip-container { border: none; box-shadow: none; padding: 0; }
+            .action-buttons { display: none; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    
+    <div class="action-buttons" data-html2canvas-ignore="true">
+        <button onclick="downloadPDF()" class="btn btn-download">Download PDF</button>
+        <button onclick="shareWhatsApp()" class="btn btn-whatsapp">Share on WhatsApp</button>
+        <a th:href="'mailto:?subject=Payslip - ' + ${employeeName} + '&body=Please find your payslip attached. Download it from your portal.'" class="btn btn-email">Share via Email</a>
+    </div>
+
+    <div class="payslip-container" id="payslipContent">
+        <!-- Header -->
+        <div class="header-section">
+            <div class="company-info">
+                <h1 th:text="${contractorName}">SMARTRECON TECHNOLOGIES PVT. LTD.</h1>
+                <p>Salary Slip</p>
+            </div>
+        </div>
+        
+        <div class="payslip-title">
+            Payslip for <span th:text="${#temporals.format(uploadDate, 'MMM-yy')}">Mar-26</span>
+        </div>
+
+        <!-- Employee Details -->
+        <table class="details-table">
+            <tbody>
+                <tr>
+                    <td class="details-label">Employee Name</td>
+                    <td th:text="${employeeName}">Name</td>
+                    <td class="details-label">Payment Status</td>
+                    <td style="font-weight: bold; color: #059669;">PAID</td>
+                </tr>
+                <tr>
+                    <td class="details-label">Employee ID</td>
+                    <td th:text="${employeeCode}">EM0077</td>
+                    <td class="details-label">Generated On</td>
+                    <td th:text="${#temporals.format(#temporals.createNow(), 'dd MMM yyyy')}">Date</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Salary Structure -->
+        <table class="salary-table">
+            <thead>
+                <tr>
+                    <th colspan="2" style="width: 50%;">Earnings</th>
+                    <th colspan="2" style="width: 50%;">Deductions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- We will list earnings on left, deductions on right. 
+                     Thymeleaf doesn't easily do side-by-side from two lists in a single loop if lengths differ, 
+                     so we'll use a wrapper approach or just list them.
+                     A simpler HTML trick for side-by-side in a table is nested tables or manual loop.
+                     Let's use nested tables for Earnings and Deductions inside the main table row to handle different lengths. -->
+                <tr>
+                    <td colspan="2" style="padding: 0; border: none; border-right: 1px solid #000; vertical-align: top;">
+                        <table style="width: 100%; border: none; margin: 0;">
+                            <tr th:each="comp : ${components}" th:if="${comp.type == 'Earnings'}">
+                                <td style="border: none; border-bottom: 1px dotted #ccc;" th:text="${comp.name}">Basic</td>
+                                <td style="border: none; border-bottom: 1px dotted #ccc; text-align: right;" 
+                                    th:if="${comp.isString == null || !comp.isString}" 
+                                    th:text="${#numbers.formatDecimal(comp.value, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                                <td style="border: none; border-bottom: 1px dotted #ccc; text-align: right;" 
+                                    th:if="${comp.isString != null && comp.isString}" 
+                                    th:text="${comp.value}">-</td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td colspan="2" style="padding: 0; border: none; vertical-align: top;">
+                        <table style="width: 100%; border: none; margin: 0;">
+                            <tr th:each="comp : ${components}" th:if="${comp.type == 'Deductions'}">
+                                <td style="border: none; border-bottom: 1px dotted #ccc;" th:text="${comp.name}">PF</td>
+                                <td style="border: none; border-bottom: 1px dotted #ccc; text-align: right;" 
+                                    th:if="${comp.isString == null || !comp.isString}" 
+                                    th:text="${#numbers.formatDecimal(comp.value, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                                <td style="border: none; border-bottom: 1px dotted #ccc; text-align: right;" 
+                                    th:if="${comp.isString != null && comp.isString}" 
+                                    th:text="${comp.value}">-</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                
+                <!-- Totals Row -->
+                <tr style="font-weight: 700;">
+                    <td style="border-top: 1px solid #000; border-right: none;">Total Earnings</td>
+                    <td style="border-top: 1px solid #000; border-left: none; text-align: right;" 
+                        th:text="${#numbers.formatDecimal(totalEarnings, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                    
+                    <td style="border-top: 1px solid #000; border-right: none;">Total Deductions</td>
+                    <td style="border-top: 1px solid #000; border-left: none; text-align: right;" 
+                        th:text="${#numbers.formatDecimal(totalDeductions, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Net Pay -->
+        <table class="net-pay-table">
+            <tbody>
+                <tr>
+                    <td style="width: 20%; font-weight: 700;">Net Pay</td>
+                    <td style="width: 80%;" class="net-pay-amount">
+                        <span style="margin-right: 20px;">:</span>
+                        <span th:text="${#numbers.formatDecimal(totalAmount, 1, 'COMMA', 2, 'POINT')}">32,700.00</span>
+                        <span style="margin-left: 20px; font-style: italic; font-weight: normal;">INR</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 700;">Mode of Payment</td>
+                    <td><span style="margin-right: 20px;">:</span> Online Transfer</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="footer">
+            "This payslip is computer generated, hence no signature is required"
+        </div>
+    </div>
+
+    <script>
+        function downloadPDF() {
+            const element = document.getElementById('payslipContent');
+            const opt = {
+                margin:       [10, 10, 10, 10],
+                filename:     'Payslip_[[${employeeName}]].pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' } // Landscape might fit the tables better like the image
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function shareWhatsApp() {
+            const url = window.location.href;
+            const text = encodeURIComponent(`Hello [[${employeeName}]],\n\nYour salary payslip has been generated.\nYou can view and download it here: ${url}\n\nRegards,\n[[${contractorName}]]`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+    </script>
+</body>
+</html>

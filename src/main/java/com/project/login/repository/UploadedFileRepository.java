@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface UploadedFileRepository extends JpaRepository<UploadedFiles, Long> {
     List<UploadedFiles> findByContractorId(Long contractorId);
+    UploadedFiles findFirstByContractorIdAndFileNameOrderByUploadDateDesc(Long contractorId, String fileName);
 }

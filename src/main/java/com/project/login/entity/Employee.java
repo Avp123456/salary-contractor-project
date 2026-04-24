@@ -13,6 +13,7 @@ public class Employee {
     private String name;
     private String email;
     private String password;
+    private String empCode;
 
     @ManyToOne
     @JoinColumn(name = "contractor_id")
@@ -69,5 +70,13 @@ public class Employee {
 
     public void setContractor(Contractor contractor) {
         this.contractor = contractor;
+    }
+
+    public String getEmpCode() {
+        return empCode;
+    }
+
+    public void setEmpCode(String empCode) {
+        this.empCode = empCode;
     }
 }

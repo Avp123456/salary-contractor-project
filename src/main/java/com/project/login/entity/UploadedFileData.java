@@ -24,6 +24,19 @@ import jakarta.persistence.Table;
 	    public void setContractorId(Long contractorId) {
 	    	this.contractorId = contractorId;
 	    }
+	    
+	    private String status = "Pending";
+	    private Boolean structureViewed = false;
+	    private Boolean payslipGenerated = false;
+
+	    public String getStatus() { return status; }
+	    public void setStatus(String status) { this.status = status; }
+
+	    public Boolean getStructureViewed() { return structureViewed; }
+	    public void setStructureViewed(Boolean structureViewed) { this.structureViewed = structureViewed; }
+
+	    public Boolean getPayslipGenerated() { return payslipGenerated; }
+	    public void setPayslipGenerated(Boolean payslipGenerated) { this.payslipGenerated = payslipGenerated; }
 
 	    // STRING columns
 	    private String str1;

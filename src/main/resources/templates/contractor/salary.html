@@ -1,41 +1,88 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-<title>Salary Processing</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Salary Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .container { max-width: 1200px; margin-top: 50px; }
+        .header-section { margin-bottom: 30px; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); background: white; overflow: hidden; }
+        .table thead { background-color: #f1f5f9; }
+        .table th { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #64748b; padding: 16px; border-bottom: 1px solid #e2e8f0; }
+        .table td { padding: 12px 16px; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9; }
+        .btn-show { background-color: #2563eb; color: white; font-weight: 600; padding: 8px 20px; border-radius: 8px; transition: all 0.2s; border: none; }
+        .btn-show:hover { background-color: #1d4ed8; color: white; transform: translateY(-1px); }
+        .filter-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .form-select { border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px; font-size: 0.9rem; }
+        .form-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12); }
+    </style>
 </head>
-
 <body>
 
-<div th:replace="~{fragments/navbar :: navbar}"></div>
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
 
-<div class="container mt-4">
-    <h3>Salary Processing</h3>
+    <div class="container">
+        <div class="header-section">
+            <h2 class="fw-bold mb-4" style="color: #1e293b; letter-spacing: -0.025em;">Salary Data</h2>
+            
+            <div class="filter-section">
+                <form action="/contractor/show-salary-data" method="get" class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-muted">Select Uploaded File</label>
+                        <select name="fileId" class="form-select" required>
+                            <option value="" disabled th:selected="${selectedFileId == null}">Choose a file...</option>
+                            <option th:each="f : ${files}" 
+                                    th:value="${f.id}" 
+                                    th:text="${f.fileName}"
+                                    th:selected="${f.id == selectedFileId}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-show w-100">Show Data</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-    <p>Uploaded salary data will appear here.</p>
-
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Basic</th>
-                <th>Allowances</th>
-                <th>Deductions</th>
-                <th>Net Salary</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            <tr>
-                <td>John</td>
-                <td>10000</td>
-                <td>2000</td>
-                <td>1000</td>
-                <td>11000</td>
-            </tr>
-        </tbody>
-    </table>
-</div>
+        <div class="card" th:if="${rows != null}">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Sr No.</th>
+                            <th th:each="col : ${columns}" th:text="${col.columnName}"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="row, stat : ${rows}">
+                            <td class="fw-medium text-muted" th:text="${stat.count}"></td>
+                            <td th:each="cell : ${row}" th:text="${cell}"></td>
+                        </tr>
+                        <tr th:if="${rows.empty}">
+                            <td th:colspan="${columns.size() + 1}" class="text-center py-5 text-muted">
+                                No data found for this file.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div th:if="${rows == null}" class="text-center py-5">
+            <div class="text-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3 opacity-20">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <p>Select a file above to view processed salary data.</p>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
