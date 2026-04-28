@@ -1,4 +1,4 @@
-package com.project.login.service;
+package com.project.service;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,13 +1,13 @@
-package com.project.login.service;
+package com.project.service;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.project.login.entity.Contractor;
-import com.project.login.entity.Employee;
-import com.project.login.repository.ContractorRepository;
+import com.project.entity.Contractor;
+import com.project.entity.Employee;
+import com.project.repository.ContractorRepository;
 
 @Service
 public class ContractorService {

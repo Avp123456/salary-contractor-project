@@ -216,6 +216,7 @@ radios.forEach(radio => {
   radio.addEventListener("click", function(e) {
 
     if (this.checked && this.dataset.wasChecked === "true") {
+    	
       this.checked = false; // unselect
       this.dataset.wasChecked = "false";
     } else {

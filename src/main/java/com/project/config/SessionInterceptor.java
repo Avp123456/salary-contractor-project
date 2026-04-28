@@ -1,4 +1,4 @@
-package com.project.login.config;
+package com.project.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

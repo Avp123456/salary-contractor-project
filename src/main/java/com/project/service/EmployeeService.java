@@ -1,18 +1,21 @@
-package com.project.login.service;
+package com.project.service;
 
-import com.project.login.entity.Contractor;
-import com.project.login.entity.Employee;
-import com.project.login.repository.EmployeeRepository;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.project.entity.Contractor;
+import com.project.entity.Employee;
+import com.project.repository.EmployeeRepository;
 
 @Service
 public class EmployeeService {
 
     @Autowired
     private EmployeeRepository repo;
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     // ✅ ADD THIS (MISSING METHOD)
     public Employee login(String email, String password) {
@@ -40,5 +43,11 @@ public class EmployeeService {
     }
         public Employee getById(Long id) {
             return repo.findById(id).orElse(null);
+        }
+        public boolean emailExists(String email) {
+            return !employeeRepository.findByEmail(email).isEmpty();
+        }
+        public boolean empCodeExists(String empCode) {
+            return employeeRepository.existsByEmpCode(empCode);
         }
 }

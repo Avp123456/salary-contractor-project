@@ -1,4 +1,4 @@
-package com.project.login.entity;
+package com.project.entity;
 
 import jakarta.persistence.*;
 
