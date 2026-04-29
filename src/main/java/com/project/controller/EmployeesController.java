@@ -45,29 +45,48 @@ public class EmployeesController {
         return "contractor/add-employee";
     }
 
-   @PostMapping("/contractor/save-employee")
-public String saveEmployee(@ModelAttribute Employee employee,
-                           RedirectAttributes redirectAttributes) {
+    @PostMapping("/contractor/save-employee")
+    public String saveEmployee(@ModelAttribute Employee employee,
+                               HttpSession session,
+                               RedirectAttributes redirectAttributes) {
 
-    // ✅ Check duplicate Employee ID
-    if (employee.getEmployeeId() == null &&
-        employeeService.empCodeExists(employee.getEmpCode())) {
+        Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
 
-        redirectAttributes.addFlashAttribute("error", "Employee ID already exists!");
-        return "redirect:/contractor/add-employee";
+        if (employee.getEmployeeId() == null) {
+            // ✅ New Employee Logic
+            if (employeeService.empCodeExists(employee.getEmpCode())) {
+                redirectAttributes.addFlashAttribute("error", "Employee ID already exists!");
+                return "redirect:/contractor/add-employee";
+            }
+
+            if (employeeService.emailExists(employee.getEmail())) {
+                redirectAttributes.addFlashAttribute("error", "Email already exists!");
+                return "redirect:/contractor/add-employee";
+            }
+            
+            // Assign current contractor to new employee
+            employee.setContractor(contractor);
+        } else {
+            // ✅ Edit Employee Logic
+            Employee existing = employeeService.getById(employee.getEmployeeId());
+            if (existing != null) {
+                // Check duplicate email (excluding current employee)
+                if (employeeService.emailExistsForOther(employee.getEmail(), employee.getEmployeeId())) {
+                    redirectAttributes.addFlashAttribute("error", "Email already exists!");
+                    return "redirect:/contractor/edit-employee/" + employee.getEmployeeId();
+                }
+
+                // Preserve fields not present in edit form (contractor, password, original empCode)
+                employee.setContractor(existing.getContractor());
+                employee.setPassword(existing.getPassword());
+                employee.setEmpCode(existing.getEmpCode());
+            }
+        }
+
+        employeeService.save(employee);
+        System.out.println("[ACTION] Employee saved/updated: " + employee.getName() + " " + time);
+        return "redirect:/contractor/employees";
     }
-
-    // ✅ Check duplicate Email
-    if (employee.getEmployeeId() == null &&
-        employeeService.emailExists(employee.getEmail())) {
-
-        redirectAttributes.addFlashAttribute("error", "Email already exists!");
-        return "redirect:/contractor/add-employee";
-    }
-
-    employeeService.save(employee);
-    return "redirect:/contractor/employees";
-}
 
     @GetMapping("/contractor/delete-employee/{id}")
     public String deleteEmployee(@PathVariable Long id) {

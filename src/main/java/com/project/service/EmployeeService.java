@@ -37,17 +37,23 @@ public class EmployeeService {
         return repo.findByContractor(contractor);
     }
         
-        public void deleteById(Long id) {
-            repo.deleteById(id);
-        
+    public void deleteById(Long id) {
+        repo.deleteById(id);
     }
-        public Employee getById(Long id) {
-            return repo.findById(id).orElse(null);
-        }
-        public boolean emailExists(String email) {
-            return !employeeRepository.findByEmail(email).isEmpty();
-        }
-        public boolean empCodeExists(String empCode) {
-            return employeeRepository.existsByEmpCode(empCode);
-        }
+
+    public Employee getById(Long id) {
+        return repo.findById(id).orElse(null);
+    }
+
+    public boolean emailExists(String email) {
+        return !employeeRepository.findByEmail(email).isEmpty();
+    }
+
+    public boolean empCodeExists(String empCode) {
+        return employeeRepository.existsByEmpCode(empCode);
+    }
+
+    public boolean emailExistsForOther(String email, Long id) {
+        return !employeeRepository.findByEmailAndEmployeeIdNot(email, id).isEmpty();
+    }
 }
