@@ -132,7 +132,7 @@
                     <tr th:each="f : ${files}">
                         <td class="fw-medium py-2">
                             <span th:text="${f.fileName}" style="font-size: 0.9rem;"></span>
-                            <span th:if="${f.fileContent == null}" class="badge bg-warning text-dark ms-2" style="font-size: 0.6rem;">Old (Re-upload)</span>
+                            <span th:if="${f.filePath == null}" class="badge bg-warning text-dark ms-2" style="font-size: 0.6rem;">Old (Re-upload)</span>
                         </td>
                         <td class="text-nowrap" th:text="${#numbers.formatDecimal(f.size / 1024.0 / 1024.0, 1, 2) + ' MB'}"></td>
                         <td th:text="${#temporals.format(f.uploadDate, 'dd MMM yyyy, HH:mm')}"></td>

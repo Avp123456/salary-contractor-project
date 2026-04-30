@@ -22,6 +22,9 @@ import com.project.repository.UploadedFileDataRepository;
 import com.project.repository.UploadedFileRepository;
 import com.project.service.ExcelService;
 
+import org.springframework.beans.factory.annotation.Value;
+import java.nio.file.*;
+import java.io.IOException;
 import javax.servlet.http.HttpSession;
 @Controller
 public class ReportController {
@@ -38,6 +41,9 @@ public class ReportController {
     private UploadedFileRepository fileRepo;
     @Autowired
     private ExcelService excelService;
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
     
     private Long getCurrentContractorId(HttpSession session) {
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
@@ -51,17 +57,35 @@ public class ReportController {
 
         Long contractorId = getCurrentContractorId(session);
         String originalName = file.getOriginalFilename();
+        
+        // Ensure upload directory exists
+        try {
+            Files.createDirectories(Paths.get(uploadDir));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // Check if a file with the same name already exists for this contractor
         UploadedFiles existing = fileRepo.findFirstByContractorIdAndFileNameOrderByUploadDateDesc(contractorId, originalName);
+        
+        String savedPath = uploadDir + contractorId + "_" + System.currentTimeMillis() + "_" + originalName;
 
         if (existing != null) {
-            // Update ONLY the file bytes, size and upload date — keep all configs intact
-            try { existing.setFileContent(file.getBytes()); } catch (Exception e) {}
+            // Delete old file if exists
+            if (existing.getFilePath() != null) {
+                try { Files.deleteIfExists(Paths.get(existing.getFilePath())); } catch (Exception e) {}
+            }
+            
+            // Save new file to disk
+            try {
+                Files.write(Paths.get(savedPath), file.getBytes());
+                existing.setFilePath(savedPath);
+            } catch (Exception e) { e.printStackTrace(); }
+            
             existing.setSize(file.getSize());
             existing.setUploadDate(java.time.LocalDateTime.now());
             fileRepo.save(existing);
-            System.out.println("[ACTION]  Duplicate file detected. Latest file has been saved."+ time);
+            System.out.println("[ACTION] Duplicate file updated on disk. "+ time);
 
         } else {
             // New file — create fresh record
@@ -70,9 +94,15 @@ public class ReportController {
             fileObj.setSize(file.getSize());
             fileObj.setUploadDate(java.time.LocalDateTime.now());
             fileObj.setContractorId(contractorId);
-            try { fileObj.setFileContent(file.getBytes()); } catch (Exception e) {}
+            
+            // Save to disk
+            try {
+                Files.write(Paths.get(savedPath), file.getBytes());
+                fileObj.setFilePath(savedPath);
+            } catch (Exception e) { e.printStackTrace(); }
+            
             fileRepo.save(fileObj);
-            System.out.println("[INFO] Uploaded File Saved");
+            System.out.println("[INFO] Uploaded File Saved to disk");
         }
         System.out.println("[INFO] Reports Page Visited");
 
@@ -169,8 +199,11 @@ public class ReportController {
             UploadedFiles file = fileRepo.findById(fileId).orElse(null);
             if (file == null || !file.getContractorId().equals(contractorId)) return "redirect:/contractor/reports";
             List<List<String>> excelData = (List<List<String>>) session.getAttribute("excelData");
-            if (excelData == null && file != null && file.getFileContent() != null) {
-                excelData = excelService.parseExcel(file.getFileContent());
+            if (excelData == null && file != null && file.getFilePath() != null) {
+                try {
+                    byte[] fileBytes = Files.readAllBytes(Paths.get(file.getFilePath()));
+                    excelData = excelService.parseExcel(fileBytes);
+                } catch (IOException e) { e.printStackTrace(); }
             }
             if (excelData != null && file != null) {
                 data = new java.util.ArrayList<>();
@@ -199,6 +232,7 @@ public class ReportController {
         // Delete existing data for this file before saving to avoid duplicates
         dataRepo.deleteByFileId(fileId);
 
+        if (data == null) return "redirect:/contractor/reports";
         for (List<String> row : data) {
             UploadedFileData d = new UploadedFileData();
             d.setFileId(fileId);
@@ -255,13 +289,16 @@ public class ReportController {
         
         System.out.println("Preview - File ID: " + fileId);
         if (file != null) {
-            System.out.println("File found in DB. Content exists? " + (file.getFileContent() != null));
+            System.out.println("File found in DB. Path exists? " + (file.getFilePath() != null));
         }
 
-        // Always re-parse if we have the bytes in the DB to ensure latest logic (like comma removal) is applied
-        if (file != null && file.getFileContent() != null) {
-            excelData = excelService.parseExcel(file.getFileContent());
-            session.setAttribute("excelData", excelData);
+        // Always re-parse if we have the file on disk to ensure latest logic is applied
+        if (file != null && file.getFilePath() != null) {
+            try {
+                byte[] fileBytes = Files.readAllBytes(Paths.get(file.getFilePath()));
+                excelData = excelService.parseExcel(fileBytes);
+                session.setAttribute("excelData", excelData);
+            } catch (IOException e) { e.printStackTrace(); }
         }
         
         if (excelData == null) {
@@ -325,10 +362,14 @@ System.out.println("[INFO] Report Page Visited "+time);
         Long contractorId = getCurrentContractorId(session);
         UploadedFiles file = fileRepo.findById(id).orElse(null);
         if (file != null && contractorId != null && contractorId.equals(file.getContractorId())) {
+            // Delete from disk
+            if (file.getFilePath() != null) {
+                try { Files.deleteIfExists(Paths.get(file.getFilePath())); } catch (Exception e) {}
+            }
             dataRepo.deleteByFileId(id);
             columnRepo.deleteByFileId(id);
             fileRepo.delete(file);
-            System.out.println("[INFO] File Deleted "+time);
+            System.out.println("[INFO] File and data deleted from disk and DB. "+time);
 
         }
         System.out.println("[INFO] Reports Page Visited "+time);

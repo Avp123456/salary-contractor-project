@@ -21,8 +21,8 @@ import javax.persistence.Table;
 	    private Integer headerCount;
 	    private Integer trailerCount;
 	    private Integer totalPayableColumn; // Index of total payable amount column
-	    @javax.persistence.Column(name = "file_content")
-	    private byte[] fileContent;
+	    @javax.persistence.Column(name = "file_path")
+	    private String filePath;
 	    private Long contractorId;
 	    
 		public Long getContractorId() {
@@ -67,11 +67,11 @@ import javax.persistence.Table;
 		public void setTrailerCount(Integer trailerCount) {
 			this.trailerCount = trailerCount;
 		}
-		public byte[] getFileContent() {
-			return fileContent;
+		public String getFilePath() {
+			return filePath;
 		}
-		public void setFileContent(byte[] fileContent) {
-			this.fileContent = fileContent;
+		public void setFilePath(String filePath) {
+			this.filePath = filePath;
 		}
 		public Integer getTotalPayableColumn() {
 			return totalPayableColumn;
