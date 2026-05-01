@@ -22,7 +22,7 @@ import com.project.repository.UploadedFileDataRepository;
 import com.project.repository.UploadedFileRepository;
 import com.project.service.EmployeeService;
 
-import jakarta.servlet.http.HttpSession;
+import javax.servlet.http.HttpSession;
 @Controller
 public class PaymentsController {
 
@@ -88,6 +88,24 @@ public class PaymentsController {
                 })
                 .findFirst()
                 .orElse(null);
+            UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+            UploadedFileColumns salaryCol = null;
+            
+            if (file != null && file.getTotalPayableColumn() != null && file.getTotalPayableColumn() > 0) {
+                final int totalPos = file.getTotalPayableColumn();
+                salaryCol = cols.stream()
+                    .filter(c -> c.isParse() != null && c.isParse())
+                    .filter(c -> c.getColumnPosition() == totalPos)
+                    .findFirst()
+                    .orElse(null);
+            }
+            
+            if (salaryCol == null) {
+                salaryCol = cols.stream()
+                    .filter(c -> c.isParse() != null && c.isParse())
+                    .max(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+                    .orElse(null);
+            }
 
             if (salaryCol == null) {
                 salaryCol = cols.stream()
@@ -158,14 +176,22 @@ System.out.println("[INFO] Payments Page Visited "+time);
 
         List<UploadedFileColumns> columns = columnRepo.findByFileId(data.getFileId());
         columns.sort(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition));
-        
-        List<java.util.Map<String, String>> fields = new java.util.ArrayList<>();
+
+        UploadedFiles file = fileRepo.findById(data.getFileId()).orElse(null);
+        Integer totalPos = (file != null) ? file.getTotalPayableColumn() : 0;
+
+        List<java.util.Map<String, Object>> fields = new java.util.ArrayList<>();
+        java.util.Map<String, Object> totalField = null;
+
         for (UploadedFileColumns col : columns) {
             if (col.isParse() != null && col.isParse()) {
-                java.util.Map<String, String> f = new java.util.HashMap<>();
-                f.put("name", col.getColumnName());
+                java.util.Map<String, Object> f = new java.util.HashMap<>();
+                boolean isTotal = totalPos != null && totalPos > 0 && col.getColumnPosition() == totalPos;
+                
+                f.put("name", isTotal ? "Total Payable Amount" : col.getColumnName());
                 f.put("actual", col.getActualColumn());
                 f.put("type", col.getDataType());
+                f.put("isTotal", isTotal);
                 
                 String val = "";
                 try {
@@ -174,9 +200,14 @@ System.out.println("[INFO] Payments Page Visited "+time);
                     if (result != null) val = result.toString();
                 } catch (Exception e) {}
                 f.put("value", val);
-                fields.add(f);
+
+                if (isTotal) totalField = f;
+                else fields.add(f);
             }
         }
+        
+        // Add the total field at the very end
+        if (totalField != null) fields.add(totalField);
 
         java.util.Map<String, Object> res = new java.util.HashMap<>();
         res.put("id", data.getId());
@@ -333,8 +364,19 @@ System.out.println("[INFO] Payments Page Visited "+time);
                             components.add(comp);
                         }
                     } else if (colName.contains("PAYABLE") || colName.contains("NET") || (colName.contains("TOTAL") && !colName.contains("EARNING") && !colName.contains("DEDUCT") && !colName.contains("SALARY"))) {
+                    boolean isTotal = false;
+                    if (file.getTotalPayableColumn() != null && file.getTotalPayableColumn() > 0) {
+                        isTotal = (col.getColumnPosition() == file.getTotalPayableColumn());
+                    } else {
+                        isTotal = colName.contains("TOTAL") || colName.contains("PAYABLE") || colName.contains("NET") || colName.contains("AMOUNT");
+                    }
+
+                    if (isTotal) {
                         comp.put("type", "Total");
                         if (isNumber) totalAmount = valNum;
+                    } else if (colName.contains("DEDUCT") || colName.contains("TDS") || colName.contains("TAX") || colName.contains("PF") || colName.contains("FINE") || colName.contains("FUND") || colName.contains("ESI") || colName.contains("LOAN") || colName.contains("PROF")) {
+                        comp.put("type", "Deductions");
+                        if (isNumber && !colName.contains("TOTAL")) totalDeductions += valNum;
                     } else {
                         comp.put("type", "Earnings");
                         if (isNumber && (colName.contains("TOTAL") || colName.contains("GROSS") || colName.contains("SUM"))) {
