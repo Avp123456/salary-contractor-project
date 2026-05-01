@@ -72,8 +72,6 @@
                             <th>Sr No.</th>
                             <th>Employee ID</th>
                             <th>Employee Name</th>
-                            <th>Amount</th>
-                            <th>Status</th>
                             <th class="text-center">Action</th>
                         </tr>
                     </thead>
@@ -82,25 +80,6 @@
                             <td th:text="${stat.count}"></td>
                             <td class="fw-medium text-primary" th:text="${p.empCode}"></td>
                             <td th:text="${p.name}"></td>
-                            <td class="fw-bold amount-cell" th:text="'₹' + ${#numbers.formatDecimal(p.amount, 1, 'COMMA', 2, 'POINT')}"></td>
-                            <td>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm status-dropdown" type="button" 
-                                            th:id="'dropdownMenuButton-' + ${p.id}" 
-                                            data-bs-toggle="dropdown" aria-expanded="false"
-                                            th:data-id="${p.id}"
-                                            th:data-status="${p.status}"
-                                            style="width: 100px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; padding: 4px; border: none; color: white;"
-                                            th:styleappend="${p.status == 'Paid' ? 'background-color: #10b981;' : 'background-color: #f59e0b;'}"
-                                            th:disabled="${p.payslipGenerated}">
-                                        <span class="status-text" th:text="${p.status}">Status</span>
-                                    </button>
-                                    <ul class="dropdown-menu shadow" style="min-width: 120px; border-radius: 12px; padding: 6px; border: 1px solid #e2e8f0; margin-top: 4px;" th:aria-labelledby="'dropdownMenuButton-' + ${p.id}">
-                                        <li><a class="dropdown-item custom-dropdown-item" href="javascript:void(0)" th:onclick="'updateCustomStatus(' + ${p.id} + ', \'Pending\')'" style="border-radius: 6px; padding: 6px 16px; font-size: 0.85rem; font-weight: 500; margin-bottom: 2px;">Pending</a></li>
-                                        <li><a class="dropdown-item custom-dropdown-item" href="javascript:void(0)" th:onclick="'updateCustomStatus(' + ${p.id} + ', \'Paid\')'" style="border-radius: 6px; padding: 6px 16px; font-size: 0.85rem; font-weight: 500;">Paid</a></li>
-                                    </ul>
-                                </div>
-                            </td>
                             <td class="text-center">
                                 <button class="btn btn-view btn-sm px-3" style="font-size: 13px;" th:onclick="'openSalaryModal(' + ${p.id} + ')'">View Structure</button>
                                 
@@ -119,7 +98,7 @@
                             </td>
                         </tr>
                         <tr th:if="${payments == null || payments.empty}">
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="4" class="text-center py-5 text-muted">
                                 No matching payment records found.
                             </td>
                         </tr>
@@ -191,6 +170,7 @@
                                value="${field.value}" 
                                data-actual="${field.actual}" 
                                data-type="${field.type}"
+                               data-name="${field.name}"
                                ${isIdField ? 'data-locked="true"' : ''}
                                readonly>
                     `;
@@ -249,9 +229,19 @@
                         updates: updates
                     })
                 });                if (await response.text() === 'OK') {
-                    // Calculate new total based on the inputs (using the last input as the total amount)
-                    const lastInput = inputs[inputs.length - 1];
-                    const newTotal = parseFloat(lastInput.value.replace(/,/g, '')) || 0;
+                    // Find the total amount field from the inputs
+                    let totalInput = null;
+                    inputs.forEach(input => {
+                        const name = (input.getAttribute('data-name') || '').toUpperCase();
+                        if (name.includes('PAYABLE') || name.includes('NET') || (name.includes('TOTAL') && !name.includes('EARNING') && !name.includes('DEDUCT') && !name.includes('SALARY'))) {
+                            totalInput = input;
+                        }
+                    });
+                    
+                    // Fallback to the last input if no specific total field identified
+                    if (!totalInput) totalInput = inputs[inputs.length - 1];
+                    
+                    const newTotal = parseFloat(totalInput.value.replace(/,/g, '')) || 0;
                     
                     // Update table UI
                     const row = document.getElementById(`row-${currentDataId}`);
@@ -287,50 +277,11 @@
             }
         }
 
-        async function updateCustomStatus(id, newStatus) {
-            try {
-                const response = await fetch('/contractor/update-payment-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, status: newStatus })
-                });
 
-                if (await response.text() === 'OK') {
-                    const btn = document.getElementById('dropdownMenuButton-' + id);
-                    btn.querySelector('.status-text').innerText = newStatus;
-                    btn.setAttribute('data-status', newStatus);
-                    
-                    if (newStatus === 'Paid') {
-                        btn.style.backgroundColor = '#10b981';
-                        btn.style.color = 'white';
-                    } else {
-                        btn.style.backgroundColor = '#f59e0b';
-                        btn.style.color = 'white';
-                    }
-                }
-            } catch (err) {
-                Swal.fire({ title: 'Error', text: 'Failed to update status.', icon: 'error', width: 250, customClass: { popup: 'swal2-compact' } });
-            }
-        }
 
         async function generatePayslip(id) {
-            const row = document.getElementById(`row-${id}`);
-            const btnDropdown = row.querySelector('.status-dropdown');
-            const status = btnDropdown.getAttribute('data-status');
             const btn = document.getElementById(`btn-payslip-${id}`);
             const structureViewed = btn.getAttribute('data-viewed') === 'true';
-
-            if (status !== 'Paid') {
-                Swal.fire({
-                    title: 'Cannot Generate',
-                    text: 'Salary is not paid yet. Please update the status to Paid first.',
-                    icon: 'warning',
-                    width: 300,
-                    customClass: { popup: 'swal2-compact' },
-                    confirmButtonColor: '#2563eb'
-                });
-                return;
-            }
 
             if (!structureViewed) {
                 Swal.fire({
@@ -352,10 +303,6 @@
                 });
 
                 if (await response.text() === 'OK') {
-                    // Lock dropdown
-                    const btnDropdown = document.getElementById('dropdownMenuButton-' + id);
-                    if(btnDropdown) btnDropdown.disabled = true;
-                    
                     // Update button UI to View Payslip
                     btn.innerText = 'View Payslip';
                     btn.classList.remove('btn-pay');

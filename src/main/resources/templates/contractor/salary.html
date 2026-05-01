@@ -8,17 +8,108 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .container { max-width: 1200px; margin-top: 50px; }
+        .container { max-width: 1400px; margin-top: 50px; }
         .header-section { margin-bottom: 30px; }
         .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); background: white; overflow: hidden; }
-        .table thead { background-color: #f1f5f9; }
-        .table th { font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #64748b; padding: 16px; border-bottom: 1px solid #e2e8f0; }
-        .table td { padding: 12px 16px; font-size: 0.875rem; border-bottom: 1px solid #f1f5f9; }
+        .table thead { background-color: #dbeafe; }
+        .table th { 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            font-size: 0.7rem; 
+            letter-spacing: 0.05em; 
+            color: #1e40af; 
+            padding: 14px 16px; 
+            border-bottom: 2px solid #bfdbfe; 
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .table th.sortable:hover { background-color: #bfdbfe; }
+        
+        .table td { 
+            padding: 12px 16px; 
+            font-size: 0.85rem; 
+            border-bottom: 1px solid #f1f5f9;
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .table td:hover { background-color: #f8fafc; color: #2563eb; }
+        
+        /* Sorting Icons */
+        .sort-icon { margin-left: 5px; color: #cbd5e1; font-weight: normal; }
+        .sort-asc .sort-icon-up, .sort-desc .sort-icon-down { color: #3b82f6; font-weight: bold; }
+        
+        /* Filter Styles */
+        .filter-row { background-color: #eff6ff; }
+        .filter-row th { padding: 8px 16px; border-bottom: 1px solid #dbeafe; cursor: default !important; }
+        .filter-row th:hover { background-color: #eff6ff !important; }
+        
+        .search-wrapper { position: relative; display: flex; align-items: center; }
+        .column-filter { 
+            width: 100%; 
+            padding: 6px 30px 6px 10px; 
+            border-radius: 6px; 
+            border: 1px solid #d1d5db; 
+            font-size: 0.75rem; 
+            font-weight: 400;
+            background-color: white;
+            color: #1e293b;
+        }
+        .column-filter:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .search-btn { 
+            position: absolute; 
+            right: 8px; 
+            background: none; 
+            border: none; 
+            padding: 0; 
+            color: #94a3b8; 
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .search-btn:hover { color: #3b82f6; }
+
         .btn-show { background-color: #2563eb; color: white; font-weight: 600; padding: 8px 20px; border-radius: 8px; transition: all 0.2s; border: none; }
         .btn-show:hover { background-color: #1d4ed8; color: white; transform: translateY(-1px); }
         .filter-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; }
         .form-select { border-radius: 8px; border: 1px solid #e2e8f0; padding: 10px; font-size: 0.9rem; }
         .form-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12); }
+
+        /* Pagination Styles */
+        .pagination-container { 
+            padding: 15px 24px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            background: #fff;
+            border-top: 1px solid #f1f5f9;
+            gap: 10px;
+        }
+        .page-info { font-size: 0.85rem; color: #64748b; font-weight: 500; min-width: 100px; text-align: center; }
+        .pagination-btn { 
+            width: 32px; 
+            height: 32px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 8px; 
+            border: 1px solid #e2e8f0; 
+            background: white; 
+            color: #475569; 
+            cursor: pointer; 
+            transition: all 0.2s;
+        }
+        .pagination-btn:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; color: #2563eb; }
+        .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        /* Swal Customization to match image */
+        .custom-swal-popup { border-radius: 12px !important; border: 1px solid #3b82f6 !important; }
+        .custom-swal-html { text-align: left !important; font-size: 1rem !important; padding: 20px !important; color: #1e293b !important; }
+        .custom-swal-confirm { background-color: #eff6ff !important; color: #2563eb !important; border: 1px solid #3b82f6 !important; padding: 6px 20px !important; font-weight: 600 !important; }
     </style>
 </head>
 <body>
@@ -50,25 +141,62 @@
 
         <div class="card" th:if="${rows != null}">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0" id="salaryTable">
                     <thead>
                         <tr>
-                            <th style="width: 80px;">Sr No.</th>
-                            <th th:each="col : ${columns}" th:text="${col.columnName}"></th>
+                            <th style="width: 80px;" onclick="sortTable(0)" class="sortable">
+                                SR NO. <span class="sort-icon"><span class="sort-icon-up">↑</span><span class="sort-icon-down">↓</span></span>
+                            </th>
+                            <th th:each="col, stat : ${columns}" th:onclick="'sortTable(' + ${stat.count} + ')'" class="sortable">
+                                <span th:text="${col.columnName}"></span> 
+                                <span class="sort-icon"><span class="sort-icon-up">↑</span><span class="sort-icon-down">↓</span></span>
+                            </th>
+                        </tr>
+                        <tr class="filter-row">
+                            <th></th>
+                            <th th:each="col, stat : ${columns}">
+                                <div class="search-wrapper">
+                                    <input type="text" class="column-filter" th:placeholder="'Search...'" th:onkeyup="'filterTable()'">
+                                    <button class="search-btn">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                    </button>
+                                </div>
+                            </th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr th:each="row, stat : ${rows}">
+                    <tbody id="tableBody">
+                        <tr th:each="row, stat : ${rows}" class="data-row">
                             <td class="fw-medium text-muted" th:text="${stat.count}"></td>
-                            <td th:each="cell : ${row}" th:text="${cell}"></td>
+                            <td th:each="cell : ${row}" th:text="${cell}" onclick="showFullText(this.innerText)"></td>
                         </tr>
-                        <tr th:if="${rows.empty}">
+                    </tbody>
+                    <tbody th:if="${rows.empty}" id="noDataBody">
+                        <tr>
                             <td th:colspan="${columns.size() + 1}" class="text-center py-5 text-muted">
                                 No data found for this file.
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="pagination-container" th:if="${!rows.empty}">
+                <button class="pagination-btn" onclick="goToPage(1)" id="firstPageBtn" title="First Page">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+                </button>
+                <button class="pagination-btn" onclick="prevPage()" id="prevBtn" title="Previous Page">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                
+                <span class="page-info" id="pageDisplay">1 / 1</span>
+                
+                <button class="pagination-btn" onclick="nextPage()" id="nextBtn" title="Next Page">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                <button class="pagination-btn" onclick="goToLastPage()" id="lastPageBtn" title="Last Page">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+                </button>
             </div>
         </div>
         
@@ -86,5 +214,166 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script th:inline="javascript">
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const pageSize = 10;
+        let currentSort = { col: -1, asc: true };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const tableRows = document.querySelectorAll('.data-row');
+            if (tableRows.length > 0) {
+                // Initialize data from DOM
+                tableRows.forEach(tr => {
+                    const rowData = {
+                        element: tr,
+                        cells: Array.from(tr.cells).map(td => td.innerText.trim())
+                    };
+                    allData.push(rowData);
+                });
+                filteredData = [...allData];
+                renderTable();
+            }
+        });
+
+        function showFullText(text) {
+            if (!text || text.length < 5) return; // Don't show for short text
+            Swal.fire({
+                html: `<div style="border: 1px solid #3b82f6; padding: 15px; border-radius: 8px; margin-top: 10px;">${text}</div>`,
+                confirmButtonText: 'Ok',
+                customClass: {
+                    popup: 'custom-swal-popup',
+                    htmlContainer: 'custom-swal-html',
+                    confirmButton: 'custom-swal-confirm'
+                },
+                buttonsStyling: false,
+                width: '500px',
+                showClass: { popup: '' }, // Disable animations for faster feel
+                hideClass: { popup: '' }
+            });
+        }
+
+        function filterTable() {
+            const filters = Array.from(document.querySelectorAll('.column-filter')).map(i => i.value.toLowerCase());
+            
+            filteredData = allData.filter(row => {
+                // row.cells[0] is SR NO, search boxes start from column 1
+                return filters.every((filter, index) => {
+                    if (!filter) return true;
+                    const cellVal = row.cells[index + 1].toLowerCase();
+                    return cellVal.includes(filter);
+                });
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        function sortTable(colIndex) {
+            const headers = document.querySelectorAll('th.sortable');
+            
+            // Toggle sort direction
+            if (currentSort.col === colIndex) {
+                currentSort.asc = !currentSort.asc;
+            } else {
+                currentSort.col = colIndex;
+                currentSort.asc = true;
+            }
+
+            // Update UI
+            headers.forEach((h, idx) => {
+                h.classList.remove('sort-asc', 'sort-desc');
+                if (idx === colIndex || (idx === 0 && colIndex === 0)) { // Special handling for index 0 if needed
+                     // Fix: colIndex passed from HTML for stat.count starts from 1 for data columns
+                     // SR NO is colIndex 0
+                }
+            });
+            
+            // Apply visual classes to correct header
+            const targetHeader = colIndex === 0 ? headers[0] : headers[colIndex];
+            if (targetHeader) {
+                targetHeader.classList.add(currentSort.asc ? 'sort-asc' : 'sort-desc');
+            }
+
+            // Sort data
+            filteredData.sort((a, b) => {
+                let valA = a.cells[colIndex];
+                let valB = b.cells[colIndex];
+
+                // Numeric sort if possible
+                const numA = parseFloat(valA.replace(/,/g, ''));
+                const numB = parseFloat(valB.replace(/,/g, ''));
+                
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return currentSort.asc ? numA - numB : numB - numA;
+                }
+
+                return currentSort.asc 
+                    ? valA.localeCompare(valB) 
+                    : valB.localeCompare(valA);
+            });
+
+            renderTable();
+        }
+
+        function renderTable() {
+            const tableBody = document.getElementById('tableBody');
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            // Hide all rows first
+            allData.forEach(row => row.element.style.display = 'none');
+
+            // Show only page data
+            pageData.forEach(row => {
+                row.element.style.display = '';
+                tableBody.appendChild(row.element); // Maintain order after sort
+            });
+
+            // Update pagination UI
+            const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
+            document.getElementById('pageDisplay').innerText = `${currentPage} / ${totalPages}`;
+            
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('firstPageBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            document.getElementById('lastPageBtn').disabled = currentPage === totalPages;
+            
+            // Show no data message if filtered result is empty
+            const noDataBody = document.getElementById('noDataBody');
+            if (noDataBody) {
+                noDataBody.style.display = filteredData.length === 0 ? '' : 'none';
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        function goToLastPage() {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            currentPage = totalPages;
+            renderTable();
+        }
+    </script>
 </body>
 </html>

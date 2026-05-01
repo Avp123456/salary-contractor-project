@@ -82,8 +82,19 @@ public class PaymentsController {
 
             UploadedFileColumns salaryCol = cols.stream()
                 .filter(c -> c.isParse() != null && c.isParse())
-                .max(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+                .filter(c -> {
+                    String name = c.getColumnName().toUpperCase();
+                    return name.contains("PAYABLE") || name.contains("NET") || (name.contains("TOTAL") && !name.contains("EARNING") && !name.contains("DEDUCT") && !name.contains("SALARY"));
+                })
+                .findFirst()
                 .orElse(null);
+
+            if (salaryCol == null) {
+                salaryCol = cols.stream()
+                    .filter(c -> c.isParse() != null && c.isParse())
+                    .max(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+                    .orElse(null);
+            }
 
             if (idCol != null && salaryCol != null) {
                 String idGetter = "get" + idCol.getActualColumn().substring(0, 1).toUpperCase() + idCol.getActualColumn().substring(1);
@@ -314,17 +325,24 @@ System.out.println("[INFO] Payments Page Visited "+time);
                         comp.put("isString", true);
                     }
                     
-                    if (colName.contains("DEDUCT") || colName.contains("TDS") || colName.contains("TAX") || colName.contains("PF") || colName.contains("FINE") || colName.contains("FUND") || colName.contains("ESI") || colName.contains("LOAN") || colName.contains("PROF")) {
+                    if (colName.contains("DEDUCT") || colName.contains("DEDA") || colName.contains("TDS") || colName.contains("TAX") || colName.contains("PF") || colName.contains("FINE") || colName.contains("FUND") || colName.contains("ESI") || colName.contains("LOAN") || colName.contains("PROF")) {
                         comp.put("type", "Deductions");
-                        if (isNumber && !colName.contains("TOTAL")) totalDeductions += valNum;
-                    } else if (colName.contains("TOTAL") || colName.contains("PAYABLE") || colName.contains("NET") || colName.contains("AMOUNT")) {
+                        if (isNumber && (colName.contains("TOTAL") || colName.contains("SUM"))) {
+                            totalDeductions = valNum;
+                        } else {
+                            components.add(comp);
+                        }
+                    } else if (colName.contains("PAYABLE") || colName.contains("NET") || (colName.contains("TOTAL") && !colName.contains("EARNING") && !colName.contains("DEDUCT") && !colName.contains("SALARY"))) {
                         comp.put("type", "Total");
                         if (isNumber) totalAmount = valNum;
                     } else {
                         comp.put("type", "Earnings");
-                        if (isNumber && !colName.contains("TOTAL")) totalEarnings += valNum;
+                        if (isNumber && (colName.contains("TOTAL") || colName.contains("GROSS") || colName.contains("SUM"))) {
+                            totalEarnings = valNum;
+                        } else {
+                            components.add(comp);
+                        }
                     }
-                    components.add(comp);
                 }
             }
         }
@@ -352,6 +370,9 @@ System.out.println("[INFO] Payments Page Visited "+time);
         
         model.addAttribute("uploadDate", file.getUploadDate());
         model.addAttribute("components", components);
+        
+        // Removed manual calculation as per user request. Total values are mapped from input.
+        
         model.addAttribute("totalAmount", totalAmount);
         model.addAttribute("totalEarnings", totalEarnings);
         model.addAttribute("totalDeductions", totalDeductions);

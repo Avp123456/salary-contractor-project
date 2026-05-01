@@ -197,7 +197,34 @@ public class ReportController {
         // Delete existing data for this file before saving to avoid duplicates
         dataRepo.deleteByFileId(fileId);
 
+        // Identify the ID column to skip rows with empty IDs (totals)
+        final UploadedFileColumns idCol = parseColumns.stream()
+            .filter(c -> {
+                String name = c.getColumnName().toUpperCase();
+                return name.contains("ID") || name.contains("CODE") || name.contains("EMP");
+            })
+            .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+            .orElse(null);
+        
+        int idIdx = -1;
+        if (idCol != null) {
+            for (int i = 0; i < parseColumns.size(); i++) {
+                if (parseColumns.get(i).getColumnPosition() == idCol.getColumnPosition()) {
+                    idIdx = i;
+                    break;
+                }
+            }
+        }
+
         for (List<String> row : data) {
+            // Skip rows where ID is empty (usually these are 'Total' rows in Excel)
+            if (idIdx != -1) {
+                String idVal = idIdx < row.size() ? row.get(idIdx) : "";
+                if (idVal == null || idVal.trim().isEmpty() || idVal.trim().equals("0") || idVal.trim().equals("0.0")) {
+                    continue;
+                }
+            }
+
             UploadedFileData d = new UploadedFileData();
             d.setFileId(fileId);
             d.setContractorId(contractorId);

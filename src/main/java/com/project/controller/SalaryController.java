@@ -61,8 +61,25 @@ public class SalaryController {
 
         List<UploadedFileData> dataList = dataRepo.findByFileId(fileId);
         List<List<String>> rows = new java.util.ArrayList<>();
+        // Identify ID column for filtering
+        final UploadedFileColumns idCol = displayColumns.stream()
+            .filter(c -> {
+                String name = c.getColumnName().toUpperCase();
+                return name.contains("ID") || name.contains("CODE") || name.contains("EMP");
+            })
+            .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+            .orElse(null);
 
         for (UploadedFileData data : dataList) {
+            // Skip rows where ID is empty (usually these are 'Total' rows in Excel)
+            if (idCol != null) {
+                try {
+                    java.lang.reflect.Method method = UploadedFileData.class.getMethod("get" + idCol.getActualColumn().substring(0, 1).toUpperCase() + idCol.getActualColumn().substring(1));
+                    Object val = method.invoke(data);
+                    String sVal = val != null ? val.toString().trim() : "";
+                    if (sVal.isEmpty() || sVal.equals("0") || sVal.equals("0.0")) continue;
+                } catch (Exception e) {}
+            }
             List<String> row = new java.util.ArrayList<>();
             for (UploadedFileColumns col : displayColumns) {
                 String value = "";
