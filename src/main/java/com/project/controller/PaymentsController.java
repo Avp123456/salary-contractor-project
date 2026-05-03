@@ -45,6 +45,41 @@ public class PaymentsController {
         return (contractor != null) ? contractor.getContractorId() : null;
     }
 
+    private UploadedFileColumns findIdColumn(List<UploadedFileColumns> cols) {
+        List<UploadedFileColumns> filtered = cols.stream()
+                .filter(c -> c.isParse() != null && c.isParse())
+                .collect(java.util.stream.Collectors.toList());
+
+        UploadedFileColumns specific = filtered.stream()
+                .filter(c -> {
+                    String name = c.getColumnName().toUpperCase();
+                    return (name.contains("EMP") || name.contains("EMPLOYEE")) && (name.contains("ID") || name.contains("CODE"));
+                })
+                .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+                .orElse(null);
+        if (specific != null) return specific;
+
+        return filtered.stream()
+                .filter(c -> {
+                    String name = c.getColumnName().toUpperCase();
+                    return name.contains("ID") || name.contains("CODE");
+                })
+                .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+                .orElse(null);
+    }
+
+    private Double parseAmount(Object val) {
+        if (val == null) return 0.0;
+        try {
+            if (val instanceof Double) return (Double) val;
+            String clean = val.toString().replaceAll("[^0-9.-]", "").trim();
+            if (clean.isEmpty()) return 0.0;
+            return Double.parseDouble(clean);
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
     @GetMapping("/contractor/payments")
     public String payments(Model model, HttpSession session) {
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
@@ -71,23 +106,8 @@ public class PaymentsController {
             if (cols.isEmpty()) continue;
 
             // Find ID and Salary columns
-            UploadedFileColumns idCol = cols.stream()
-                .filter(c -> c.isParse() != null && c.isParse())
-                .filter(c -> {
-                    String name = c.getColumnName().toUpperCase();
-                    return name.contains("ID") || name.contains("CODE") || name.contains("EMP");
-                })
-                .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
-                .orElse(null);
+            UploadedFileColumns idCol = findIdColumn(cols);
 
-            UploadedFileColumns salaryCol = cols.stream()
-                .filter(c -> c.isParse() != null && c.isParse())
-                .filter(c -> {
-                    String name = c.getColumnName().toUpperCase();
-                    return name.contains("PAYABLE") || name.contains("NET") || (name.contains("TOTAL") && !name.contains("EARNING") && !name.contains("DEDUCT") && !name.contains("SALARY"));
-                })
-                .findFirst()
-                .orElse(null);
             UploadedFiles file = fileRepo.findById(fileId).orElse(null);
             UploadedFileColumns salaryCol = null;
             
@@ -100,13 +120,6 @@ public class PaymentsController {
                     .orElse(null);
             }
             
-            if (salaryCol == null) {
-                salaryCol = cols.stream()
-                    .filter(c -> c.isParse() != null && c.isParse())
-                    .max(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
-                    .orElse(null);
-            }
-
             if (salaryCol == null) {
                 salaryCol = cols.stream()
                     .filter(c -> c.isParse() != null && c.isParse())
@@ -133,12 +146,7 @@ public class PaymentsController {
 
                             if (match != null) {
                                 java.lang.reflect.Method mSal = UploadedFileData.class.getMethod(salaryGetter);
-                                Object salVal = mSal.invoke(row);
-                                Double amount = 0.0;
-                                if (salVal != null) {
-                                    if (salVal instanceof Double) amount = (Double) salVal;
-                                    else amount = Double.parseDouble(salVal.toString().replace(",", "").trim());
-                                }
+                                Double amount = parseAmount(mSal.invoke(row));
 
                                 java.util.Map<String, Object> p = new java.util.HashMap<>();
                                 p.put("id", row.getId()); // Store the data ID
@@ -312,33 +320,21 @@ System.out.println("[INFO] Payments Page Visited "+time);
         for (UploadedFileColumns col : columns) {
             if (col.isParse() != null && col.isParse()) {
                 String colName = col.getColumnName().toUpperCase();
-                boolean isId = colName.contains("ID") || colName.contains("CODE") || colName.contains("EMP");
+                UploadedFileColumns idColLocal = findIdColumn(columns);
+                boolean isId = (idColLocal != null && col.getId().equals(idColLocal.getId()));
                 boolean isName = colName.contains("NAME");
                 
                 String valStr = "";
                 Double valNum = 0.0;
                 boolean isNumber = false;
-                
+
                 try {
                     java.lang.reflect.Method m = UploadedFileData.class.getMethod("get" + col.getActualColumn().substring(0, 1).toUpperCase() + col.getActualColumn().substring(1));
                     Object result = m.invoke(data);
-                    if (result != null) {
-                        valStr = result.toString().trim();
-                        if (result instanceof Double) {
-                            valNum = (Double) result;
-                            isNumber = true;
-                        } else if (col.getActualColumn().startsWith("num")) {
-                            valNum = Double.parseDouble(valStr.replace(",", ""));
-                            isNumber = true;
-                        } else {
-                            // Try parsing string as number to ensure totals work
-                            try {
-                                valNum = Double.parseDouble(valStr.replace(",", ""));
-                                isNumber = true;
-                            } catch (Exception ex) {
-                                isNumber = false;
-                            }
-                        }
+                    valNum = parseAmount(result);
+                    valStr = result != null ? result.toString().trim() : "";
+                    if (col.getActualColumn().startsWith("num") || valNum != 0.0) {
+                        isNumber = true;
                     }
                 } catch (Exception e) {}
 
@@ -356,14 +352,6 @@ System.out.println("[INFO] Payments Page Visited "+time);
                         comp.put("isString", true);
                     }
                     
-                    if (colName.contains("DEDUCT") || colName.contains("DEDA") || colName.contains("TDS") || colName.contains("TAX") || colName.contains("PF") || colName.contains("FINE") || colName.contains("FUND") || colName.contains("ESI") || colName.contains("LOAN") || colName.contains("PROF")) {
-                        comp.put("type", "Deductions");
-                        if (isNumber && (colName.contains("TOTAL") || colName.contains("SUM"))) {
-                            totalDeductions = valNum;
-                        } else {
-                            components.add(comp);
-                        }
-                    } else if (colName.contains("PAYABLE") || colName.contains("NET") || (colName.contains("TOTAL") && !colName.contains("EARNING") && !colName.contains("DEDUCT") && !colName.contains("SALARY"))) {
                     boolean isTotal = false;
                     if (file.getTotalPayableColumn() != null && file.getTotalPayableColumn() > 0) {
                         isTotal = (col.getColumnPosition() == file.getTotalPayableColumn());
@@ -379,12 +367,9 @@ System.out.println("[INFO] Payments Page Visited "+time);
                         if (isNumber && !colName.contains("TOTAL")) totalDeductions += valNum;
                     } else {
                         comp.put("type", "Earnings");
-                        if (isNumber && (colName.contains("TOTAL") || colName.contains("GROSS") || colName.contains("SUM"))) {
-                            totalEarnings = valNum;
-                        } else {
-                            components.add(comp);
-                        }
+                        if (isNumber && !colName.contains("TOTAL")) totalEarnings += valNum;
                     }
+                    components.add(comp);
                 }
             }
         }
@@ -412,9 +397,6 @@ System.out.println("[INFO] Payments Page Visited "+time);
         
         model.addAttribute("uploadDate", file.getUploadDate());
         model.addAttribute("components", components);
-        
-        // Removed manual calculation as per user request. Total values are mapped from input.
-        
         model.addAttribute("totalAmount", totalAmount);
         model.addAttribute("totalEarnings", totalEarnings);
         model.addAttribute("totalDeductions", totalDeductions);

@@ -17,9 +17,13 @@ import com.project.entity.Contractor;
 import com.project.entity.UploadedFileColumns;
 import com.project.entity.UploadedFileData;
 import com.project.entity.UploadedFiles;
+import com.project.entity.ReportConfiguration;
+import com.project.entity.ReportConfigurationColumn;
 import com.project.repository.UploadedFileColumnsRepository;
 import com.project.repository.UploadedFileDataRepository;
 import com.project.repository.UploadedFileRepository;
+import com.project.repository.ReportConfigurationRepository;
+import com.project.repository.ReportConfigurationColumnRepository;
 import com.project.service.ExcelService;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +43,13 @@ public class ReportController {
     
     @Autowired
     private UploadedFileRepository fileRepo;
+    
+    @Autowired
+    private ReportConfigurationRepository configRepo;
+    
+    @Autowired
+    private ReportConfigurationColumnRepository configColRepo;
+
     @Autowired
     private ExcelService excelService;
 
@@ -293,12 +304,14 @@ public class ReportController {
         }
 
         List<UploadedFileColumns> existingColumns = columnRepo.findByFileIdAndContractorId(fileId, contractorId);
+        List<ReportConfiguration> configurations = configRepo.findByContractorId(contractorId);
         
         model.addAttribute("fileId", fileId);
         model.addAttribute("headerCount", file.getHeaderCount() != null ? file.getHeaderCount() : 0);
         model.addAttribute("trailerCount", file.getTrailerCount() != null ? file.getTrailerCount() : 0);
         model.addAttribute("totalPayableColumn", file.getTotalPayableColumn() != null ? file.getTotalPayableColumn() : 0);
         model.addAttribute("existingColumns", existingColumns);
+        model.addAttribute("configurations", configurations);
         
         session.setAttribute("fileId", fileId);
         return "contractor/columns";
@@ -404,5 +417,78 @@ System.out.println("[INFO] Report Page Visited "+time);
         return "redirect:/contractor/reports";
     }
 
+    @GetMapping("/contractor/configurations")
+    public String configurations(Model model, HttpSession session) {
+        Long contractorId = getCurrentContractorId(session);
+        model.addAttribute("configurations", configRepo.findByContractorId(contractorId));
+        return "contractor/configuration";
+    }
 
+    @PostMapping("/contractor/save-configuration")
+    @ResponseBody
+    public String saveConfiguration(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
+        Long contractorId = getCurrentContractorId(session);
+        Object idObj = payload.get("id");
+        Long id = (idObj != null) ? Long.valueOf(idObj.toString()) : null;
+        
+        String name = payload.get("configName").toString();
+        int header = Integer.parseInt(payload.get("headerCount").toString());
+        int trailer = Integer.parseInt(payload.get("trailerCount").toString());
+        int totalPos = Integer.parseInt(payload.get("totalPayableColumn").toString());
+        List<java.util.Map<String, Object>> columns = (List<java.util.Map<String, Object>>) payload.get("columns");
+
+        ReportConfiguration config;
+        if (id != null) {
+            config = configRepo.findById(id).orElse(new ReportConfiguration());
+            // Clear existing columns for update
+            configColRepo.deleteByConfigId(id);
+        } else {
+            config = new ReportConfiguration();
+        }
+
+        config.setContractorId(contractorId);
+        config.setConfigName(name);
+        config.setHeaderCount(header);
+        config.setTrailerCount(trailer);
+        config.setTotalPayableColumn(totalPos);
+        configRepo.save(config);
+
+        for (java.util.Map<String, Object> colMap : columns) {
+            ReportConfigurationColumn col = new ReportConfigurationColumn();
+            col.setConfigId(config.getId());
+            col.setColumnName(colMap.get("columnName").toString());
+            col.setDataType(colMap.get("dataType").toString());
+            col.setColumnPosition(Integer.parseInt(colMap.get("columnPosition").toString()));
+            configColRepo.save(col);
+        }
+
+        return "OK";
+    }
+
+    @GetMapping("/contractor/get-configuration/{id}")
+    @ResponseBody
+    public java.util.Map<String, Object> getConfiguration(@PathVariable Long id, HttpSession session) {
+        Long contractorId = getCurrentContractorId(session);
+        ReportConfiguration config = configRepo.findById(id).orElse(null);
+        if (config == null || !config.getContractorId().equals(contractorId)) return null;
+
+        java.util.Map<String, Object> res = new java.util.HashMap<>();
+        res.put("configName", config.getConfigName());
+        res.put("headerCount", config.getHeaderCount());
+        res.put("trailerCount", config.getTrailerCount());
+        res.put("totalPayableColumn", config.getTotalPayableColumn());
+        res.put("columns", configColRepo.findByConfigId(id));
+        return res;
+    }
+
+    @GetMapping("/contractor/delete-configuration/{id}")
+    public String deleteConfiguration(@PathVariable Long id, HttpSession session) {
+        Long contractorId = getCurrentContractorId(session);
+        ReportConfiguration config = configRepo.findById(id).orElse(null);
+        if (config != null && config.getContractorId().equals(contractorId)) {
+            configColRepo.deleteByConfigId(id);
+            configRepo.delete(config);
+        }
+        return "redirect:/contractor/configurations";
+    }
 }

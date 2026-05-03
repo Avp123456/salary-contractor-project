@@ -55,27 +55,37 @@
         <div class="card">
             <!-- Header/Trailer Config -->
             <div class="config-row">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-primary">Select Saved Configuration</label>
+                        <select id="configSelect" class="form-select form-select-sm" onchange="loadConfiguration(this.value)">
+                            <option value="">-- Manual Configuration --</option>
+                            <option th:each="cfg : ${configurations}" th:value="${cfg.id}" th:text="${cfg.configName}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-8 text-end">
+                        <button class="btn btn-outline-primary btn-sm px-3" style="font-size: 0.75rem; border-style: dashed;" onclick="addRow()">+ Add Column</button>
+                    </div>
+                </div>
+                <hr class="my-3 text-muted opacity-25">
                 <div class="row">
                     <div class="col-md-2">
                         <label class="form-label fw-bold text-muted">Header Skip</label>
                         <input type="number" id="headerCount" class="form-control form-control-sm" 
-                                th:value="${headerCount}" min="0">
+                                 th:value="${headerCount}" min="0">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label fw-bold text-muted">Trailer Skip</label>
                         <input type="number" id="trailerCount" class="form-control form-control-sm" 
-                                th:value="${trailerCount}" min="0">
+                                 th:value="${trailerCount}" min="0">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold text-muted">Total Payable Amount Column Position</label>
                         <input type="number" id="totalPayableColumn" class="form-control form-control-sm" 
-                                th:value="${totalPayableColumn}" 
-                                placeholder="Mandatory Excel Pos"
-                                oninput="this.classList.remove('is-invalid')"
-                                min="1" required>
-                    </div>
-                    <div class="col-md-4 d-flex align-items-end justify-content-end">
-                        <button class="btn btn-outline-primary btn-sm mb-1 px-3" style="font-size: 0.75rem; border-style: dashed;" onclick="addRow()">+ Add Column</button>
+                                 th:value="${totalPayableColumn}" 
+                                 placeholder="Mandatory Excel Pos"
+                                 oninput="this.classList.remove('is-invalid')"
+                                 min="1" required>
                     </div>
                 </div>
             </div>
@@ -138,6 +148,39 @@
                 </td>
             `;
             tbody.appendChild(row);
+        }
+
+        function loadConfiguration(id) {
+            if (!id) return;
+            fetch('/contractor/get-configuration/' + id)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) return;
+                    document.getElementById('headerCount').value = data.headerCount;
+                    document.getElementById('trailerCount').value = data.trailerCount;
+                    document.getElementById('totalPayableColumn').value = data.totalPayableColumn;
+                    
+                    const tbody = document.getElementById('columnBody');
+                    tbody.innerHTML = ''; // Clear existing
+                    
+                    data.columns.forEach(col => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><input type="text" class="form-control form-control-sm" value="${col.columnName}" placeholder="Column Name" required></td>
+                            <td>
+                                <select class="form-select form-select-sm" required>
+                                    <option value="STRING" ${col.dataType === 'STRING' ? 'selected' : ''}>STRING</option>
+                                    <option value="NUMBER" ${col.dataType === 'NUMBER' ? 'selected' : ''}>NUMBER</option>
+                                </select>
+                            </td>
+                            <td><input type="number" class="form-control form-control-sm" value="${col.columnPosition}" placeholder="Pos" min="1" required></td>
+                            <td class="text-center">
+                                <button class="btn btn-outline-danger btn-sm py-1 px-2" style="font-size: 0.75rem;" onclick="this.parentElement.parentElement.remove()">Delete</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                });
         }
 
         // Add initial row ONLY if no existing columns

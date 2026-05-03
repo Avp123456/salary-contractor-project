@@ -14,6 +14,7 @@ public class Employee {
     private String email;
     private String password;
     private String empCode;
+    private Boolean passwordChanged = false;
 
     @ManyToOne
     @JoinColumn(name = "contractor_id")
@@ -78,5 +79,13 @@ public class Employee {
 
     public void setEmpCode(String empCode) {
         this.empCode = empCode;
+    }
+
+    public Boolean getPasswordChanged() {
+        return passwordChanged != null ? passwordChanged : false;
+    }
+
+    public void setPasswordChanged(Boolean passwordChanged) {
+        this.passwordChanged = passwordChanged;
     }
 }

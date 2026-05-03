@@ -1,0 +1,67 @@
+package com.project.entity;
+
+import javax.persistence.*;
+import java.util.List;
+
+@Entity
+@Table(name = "report_configurations")
+public class ReportConfiguration {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Long contractorId;
+    private String configName;
+    private Integer headerCount;
+    private Integer trailerCount;
+    private Integer totalPayableColumn;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getContractorId() {
+        return contractorId;
+    }
+
+    public void setContractorId(Long contractorId) {
+        this.contractorId = contractorId;
+    }
+
+    public String getConfigName() {
+        return configName;
+    }
+
+    public void setConfigName(String configName) {
+        this.configName = configName;
+    }
+
+    public Integer getHeaderCount() {
+        return headerCount;
+    }
+
+    public void setHeaderCount(Integer headerCount) {
+        this.headerCount = headerCount;
+    }
+
+    public Integer getTrailerCount() {
+        return trailerCount;
+    }
+
+    public void setTrailerCount(Integer trailerCount) {
+        this.trailerCount = trailerCount;
+    }
+
+    public Integer getTotalPayableColumn() {
+        return totalPayableColumn;
+    }
+
+    public void setTotalPayableColumn(Integer totalPayableColumn) {
+        this.totalPayableColumn = totalPayableColumn;
+    }
+}

@@ -127,15 +127,4 @@ public class DashBoardController {
         System.out.println("[INFO] Dashboard page visited "+time);
         return "contractor/dashboard";
     }
-    /*
-    ==========================
-       Employee Dashboard 
-    ==========================
-    */
-    @GetMapping("/employee/dashboard")
-    public String employeeDashboard() {
-        System.out.println("[INFO] Dashboard page visited "+time);
-        return "employee/dashboard";
-    }
-
 }

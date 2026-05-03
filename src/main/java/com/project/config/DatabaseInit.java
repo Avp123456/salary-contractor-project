@@ -32,9 +32,7 @@ public class DatabaseInit implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE file_data ADD COLUMN IF NOT EXISTS structure_viewed BOOLEAN DEFAULT FALSE");
             jdbcTemplate.execute("ALTER TABLE file_data ADD COLUMN IF NOT EXISTS payslip_generated BOOLEAN DEFAULT FALSE");
 
-            // ================= RESET SCRIPT =================
-            jdbcTemplate.execute("UPDATE file_data SET status = 'Pending', payslip_generated = FALSE, structure_viewed = FALSE");
-
+            
             // ================= DATA FIX =================
             jdbcTemplate.execute("UPDATE uploaded_files SET header_count = 0 WHERE header_count IS NULL");
             jdbcTemplate.execute("UPDATE uploaded_files SET trailer_count = 0 WHERE trailer_count IS NULL");

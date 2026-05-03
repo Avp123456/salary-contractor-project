@@ -78,6 +78,11 @@ public class MainController {
 			if (employee != null) {
 				session.setAttribute("loggedInEmployee", employee);
 				System.out.println("[INFO] Employee Logged in  "+ time);
+				
+				if (!employee.getPasswordChanged()) {
+					return "redirect:/employee/change-password";
+				}
+				
 				return "redirect:/employee/dashboard";
 			} else {
 				model.addAttribute("error", "Invalid employee credentials");
