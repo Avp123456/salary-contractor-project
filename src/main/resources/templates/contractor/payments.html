@@ -217,23 +217,23 @@
                         id: currentDataId,
                         updates: updates
                     })
-                });                if (await response.text() === 'OK') {
-                    // Find the field marked as TOTAL to update the table
+                });
+
+                if (await response.text() === 'OK') {
                     const totalInput = document.querySelector('#salaryFieldsContainer input[data-total="true"]');
                     const lastInput = inputs[inputs.length - 1];
-                    const targetInput = totalInput || lastInput; // Fallback to last if no total marked
-                    
+                    const targetInput = totalInput || lastInput;
+
                     const newTotal = parseFloat(targetInput.value.replace(/,/g, '')) || 0;
-                    
-                    // Update table UI
+
                     const row = document.getElementById(`row-${currentDataId}`);
                     if (row) {
                         const amountCell = row.querySelector('.amount-cell');
                         amountCell.innerText = '₹' + newTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
                     }
-                    
+
                     modal.hide();
-                    
+
                     Swal.fire({
                         title: 'Updated!',
                         text: 'Salary structure saved.',
@@ -246,21 +246,7 @@
                         showConfirmButton: false
                     });
                 }
-            } catch (err) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to save changes.',
-                    icon: 'error',
-                    width: 250,
-                    padding: '16px',
-                    customClass: { popup: 'swal2-compact' },
-                    confirmButtonColor: '#2563eb'
-                });
-            }
-        }
 
-                    });
-                }
             } catch (err) {
                 Swal.fire({
                     title: 'Error',
