@@ -1,6 +1,13 @@
 package com.project.controller;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -269,6 +276,7 @@ public class FilesController {
             }
         }
 
+        List<UploadedFileData> allData = new ArrayList<>();
         if (data == null) return "redirect:/contractor/files";
         for (List<String> row : data) {
             // Skip rows where ID is empty (usually these are 'Total' rows in Excel)
@@ -292,8 +300,9 @@ public class FilesController {
                     setNumber(d, col.getActualColumn(), value);
                 }
             }
-            dataRepo.save(d);
+            allData.add(d);
         }
+        dataRepo.saveAll(allData);
         System.out.println("[INFO] Data Saved for file: " + fileId);
         return "redirect:/contractor/files?success=Data confirmed and saved successfully!";
     }
@@ -465,6 +474,7 @@ System.out.println("[INFO] Report Page Visited "+getTime());
         config.setOvertimeTotalAmountColumn(overtimeTotalPos);
         configRepo.save(config);
 
+        List<ReportConfigurationColumn> configColsToSave = new ArrayList<>();
         for (java.util.Map<String, Object> colMap : columns) {
             ReportConfigurationColumn col = new ReportConfigurationColumn();
             col.setConfigId(config.getId());
@@ -475,8 +485,9 @@ System.out.println("[INFO] Report Page Visited "+getTime());
             col.setFileType(colMap.get("fileType") != null ? colMap.get("fileType").toString() : null);
             col.setParse(colMap.get("parse") != null ? Boolean.parseBoolean(colMap.get("parse").toString()) : true);
             col.setIsKey(colMap.get("isKey") != null ? Boolean.parseBoolean(colMap.get("isKey").toString()) : false);
-            configColRepo.save(col);
+            configColsToSave.add(col);
         }
+        configColRepo.saveAll(configColsToSave);
 
         return "OK";
     }
@@ -508,5 +519,138 @@ System.out.println("[INFO] Report Page Visited "+getTime());
             configRepo.delete(config);
         }
         return "redirect:/contractor/configurations";
+    }
+
+    @GetMapping("/contractor/preview-config/{id}")
+    public String previewConfig(@PathVariable Long id, HttpSession session, Model model) {
+        Long contractorId = getCurrentContractorId(session);
+        ReportConfiguration config = configRepo.findById(id).orElse(null);
+        if (config == null || !config.getContractorId().equals(contractorId)) return "redirect:/contractor/configurations";
+
+        List<ReportConfigurationColumn> configCols = configColRepo.findByConfigId(id);
+        if (configCols.isEmpty()) return "redirect:/contractor/configurations";
+
+        // Group columns by fileType
+        Map<String, List<ReportConfigurationColumn>> fileGroups = configCols.stream()
+            .collect(Collectors.groupingBy(c -> c.getFileType() != null ? c.getFileType() : "Unknown"));
+
+        Map<String, Map<String, List<String>>> fileDataMaps = new HashMap<>();
+        Long primaryFileId = null;
+
+        // Optimize: Fetch all files for contractor once
+        List<UploadedFiles> allContractorFiles = fileRepo.findByContractorId(contractorId);
+
+        for (String fileName : fileGroups.keySet()) {
+            UploadedFiles file = allContractorFiles.stream()
+                .filter(f -> fileName.equals(f.getFileName()))
+                .sorted(Comparator.comparing(UploadedFiles::getUploadDate).reversed())
+                .findFirst().orElse(null);
+                
+            if (file == null || file.getFilePath() == null) continue;
+            
+            if (primaryFileId == null) primaryFileId = file.getId();
+
+            try {
+                byte[] bytes = Files.readAllBytes(Paths.get(file.getFilePath()));
+                List<List<String>> rawData = excelService.parseExcel(bytes);
+                
+                List<ReportConfigurationColumn> cols = fileGroups.get(fileName);
+                ReportConfigurationColumn keyCol = cols.stream().filter(c -> c.getIsKey() != null && c.getIsKey()).findFirst().orElse(null);
+                
+                int start = config.getHeaderCount() != null ? config.getHeaderCount() : 0;
+                int end = rawData.size() - (config.getTrailerCount() != null ? config.getTrailerCount() : 0);
+                
+                Map<String, List<String>> dataMap = new HashMap<>();
+                for (int i = start; i < end && i < rawData.size(); i++) {
+                    List<String> row = rawData.get(i);
+                    String key = "";
+                    if (keyCol != null) {
+                        int kPos = keyCol.getColumnPosition() - 1;
+                        key = (kPos >= 0 && kPos < row.size()) ? row.get(kPos).trim() : "";
+                    } else {
+                        key = String.valueOf(i); // Fallback to index if no key
+                    }
+                    
+                    if (key.isEmpty()) continue;
+                    
+                    List<String> extracted = new ArrayList<>();
+                    for (ReportConfigurationColumn col : configCols) {
+                        if (col.getFileType().equals(fileName)) {
+                             int pos = col.getColumnPosition() - 1;
+                             extracted.add((pos >= 0 && pos < row.size()) ? row.get(pos) : "");
+                        } else {
+                             extracted.add(null);
+                        }
+                    }
+                    dataMap.put(key, extracted);
+                }
+                fileDataMaps.put(fileName, dataMap);
+            } catch (Exception e) { e.printStackTrace(); }
+        }
+
+        Set<String> allKeys = new TreeSet<>();
+        for (Map<String, List<String>> map : fileDataMaps.values()) allKeys.addAll(map.keySet());
+
+        List<List<String>> combinedData = new ArrayList<>();
+        for (String key : allKeys) {
+            List<String> combinedRow = new ArrayList<>();
+            for (int i = 0; i < configCols.size(); i++) combinedRow.add("");
+
+            boolean rowHasData = false;
+            for (String fileName : fileDataMaps.keySet()) {
+                Map<String, List<String>> map = fileDataMaps.get(fileName);
+                if (map.containsKey(key)) {
+                    List<String> fileRow = map.get(key);
+                    for (int i = 0; i < configCols.size(); i++) {
+                        if (fileRow.get(i) != null) {
+                            combinedRow.set(i, fileRow.get(i));
+                            rowHasData = true;
+                        }
+                    }
+                }
+            }
+            if (rowHasData) combinedData.add(combinedRow);
+        }
+
+        List<UploadedFileColumns> displayCols = new ArrayList<>();
+        for (ReportConfigurationColumn cc : configCols) {
+            UploadedFileColumns uc = new UploadedFileColumns();
+            uc.setColumnName(cc.getColumnName());
+            uc.setDataType(cc.getDataType());
+            uc.setColumnPosition(cc.getColumnPosition());
+            uc.setParse(cc.getParse());
+            uc.setSalaryType(cc.getSalaryType());
+            displayCols.add(uc);
+        }
+
+        if (primaryFileId != null) {
+            UploadedFiles f = fileRepo.findById(primaryFileId).orElse(null);
+            if (f != null) {
+                f.setHeaderCount(config.getHeaderCount());
+                f.setTrailerCount(config.getTrailerCount());
+                f.setTotalPayableColumn(config.getTotalPayableColumn());
+                f.setOvertimeTotalAmountColumn(config.getOvertimeTotalAmountColumn());
+                fileRepo.save(f);
+                
+                columnRepo.deleteByFileId(primaryFileId);
+                int sCount = 1, nCount = 1;
+                for (UploadedFileColumns uc : displayCols) {
+                    uc.setFileId(primaryFileId);
+                    uc.setContractorId(contractorId);
+                    if (uc.isParse() != null && uc.isParse()) {
+                        if ("STRING".equalsIgnoreCase(uc.getDataType())) uc.setActualColumn("str" + sCount++);
+                        else uc.setActualColumn("num" + nCount++);
+                    }
+                }
+                columnRepo.saveAll(displayCols);
+            }
+            session.setAttribute("fileId", primaryFileId);
+        }
+
+        session.setAttribute("processedData", combinedData);
+        model.addAttribute("data", combinedData);
+        model.addAttribute("columns", displayCols);
+        
+        return "contractor/preview";
     }
 }

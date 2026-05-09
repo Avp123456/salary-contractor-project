@@ -54,7 +54,7 @@ public class DashBoardController {
     @GetMapping("/contractor/dashboard")
     public String contractorDashboard(Model model, HttpSession session) {
         Long contractorId = getCurrentContractorId(session);
-        if (contractorId == null) return "redirect:/login";
+        if (contractorId == null) return "redirect:/contractor/login";
 
         List<UploadedFileData> allData = dataRepo.findByContractorId(contractorId);
         long totalEmployees = 0;

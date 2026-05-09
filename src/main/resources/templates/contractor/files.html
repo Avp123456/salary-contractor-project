@@ -150,9 +150,6 @@
                         <td class="text-nowrap" th:text="${#numbers.formatDecimal(f.size / 1024.0 / 1024.0, 1, 2) + ' MB'}"></td>
                         <td th:text="${#temporals.format(f.uploadDate, 'dd MMM yyyy, HH:mm')}"></td>
                         <td class="text-center">
-                            <a th:href="@{'/contractor/columns?fileId=' + ${f.id}}" class="action-btn btn-proceed me-1 text-decoration-none">
-                                Proceed &#10142;
-                            </a>
                             <a href="#" class="action-btn btn-delete text-decoration-none" 
                                th:onclick="'confirmDelete(\'/contractor/delete-file/' + ${f.id} + '\')'">
                                 Delete

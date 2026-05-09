@@ -33,62 +33,69 @@ public class MainController {
 	//login page 
 	@GetMapping("/")
 	public String root() {
-		return "redirect:/login";
+		return "redirect:/contractor/login";
 	}
 
-	//login page 
-	@GetMapping("/login")
-	public String loginPage() {
-		//log
-		System.out.println("[INFO] Login Page Visited  "+getTime() );
+	@GetMapping("/contractor/login")
+	public String contractorLoginPage(Model model, HttpSession session) {
+		System.out.println("[INFO] Contractor Login Page Visited  "+getTime() );
+		session.setAttribute("oauth2_role", "CONTRACTOR");
+		model.addAttribute("loginAction", "/contractor/login");
+		model.addAttribute("isContractor", true);
+		return "login";
+	}
 
+	@GetMapping("/employee/login")
+	public String employeeLoginPage(Model model, HttpSession session) {
+		System.out.println("[INFO] Employee Login Page Visited  "+getTime() );
+		session.setAttribute("oauth2_role", "EMPLOYEE");
+		model.addAttribute("loginAction", "/employee/login");
+		model.addAttribute("isContractor", false);
 		return "login";
 	}
 
 	//log in process
-	@PostMapping("/login")
-	public String login(
+	@PostMapping("/contractor/login")
+	public String contractorLogin(
 			@RequestParam String email,
 			@RequestParam String password,
-			@RequestParam String role,
 			Model model,
 			HttpSession session) {
 
+		System.out.println("[ACTION] Contractor login attempt");
+		Contractor contractor = contractorService.login(email, password);
 
-		if (role.equalsIgnoreCase("CONTRACTOR")) {
-			System.out.println("[ACTION] Contractor selected");
-
-			Contractor contractor = contractorService.login(email, password);
-
-			if (contractor != null) {
-				session.setAttribute("loggedInContractor", contractor);
-				//log
-				System.out.println("[INFO] Contractor Logged in  "+ getTime());
-				return "redirect:/contractor/dashboard";
-			} else {
-				model.addAttribute("error", "Invalid contractor credentials");
-
-				return "login";
-
-			}
-
+		if (contractor != null) {
+			session.setAttribute("loggedInContractor", contractor);
+			System.out.println("[INFO] Contractor Logged in  "+ getTime());
+			return "redirect:/contractor/dashboard";
 		} else {
+			model.addAttribute("error", "Invalid contractor credentials");
+			model.addAttribute("loginAction", "/contractor/login");
+			model.addAttribute("isContractor", true);
+			return "login";
+		}
+	}
 
-			Employee employee = employeeService.login(email, password);
+	@PostMapping("/employee/login")
+	public String employeeLogin(
+			@RequestParam String email,
+			@RequestParam String password,
+			Model model,
+			HttpSession session) {
 
-			if (employee != null) {
-				session.setAttribute("loggedInEmployee", employee);
-				System.out.println("[INFO] Employee Logged in  "+ getTime());
-				
-				if (!employee.getPasswordChanged()) {
-					return "redirect:/employee/change-password";
-				}
-				
-				return "redirect:/employee/dashboard";
-			} else {
-				model.addAttribute("error", "Invalid employee credentials");
-				return "login";
-			}
+		Employee employee = employeeService.login(email, password);
+
+		if (employee != null) {
+			session.setAttribute("loggedInEmployee", employee);
+			System.out.println("[INFO] Employee Logged in  "+ getTime());
+			
+			return "redirect:/employee/dashboard";
+		} else {
+			model.addAttribute("error", "Invalid employee credentials");
+			model.addAttribute("loginAction", "/employee/login");
+			model.addAttribute("isContractor", false);
+			return "login";
 		}
 	}
 
@@ -180,7 +187,7 @@ public class MainController {
 			session.removeAttribute("reg_email");
 			session.removeAttribute("reg_password");
 
-			return "redirect:/login?registered=true";
+			return "redirect:/contractor/login?registered=true";
 		} else {
 			model.addAttribute("error", "Invalid or expired OTP!");
 			model.addAttribute("email", email);

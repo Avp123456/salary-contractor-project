@@ -7,7 +7,7 @@ import com.project.entity.Contractor;
 import com.project.entity.Employee;
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-    Employee findByEmailAndPassword(String email, String password);
+    Employee findByEmailAndPassword(String email, String password);    Employee findFirstByEmail(String email);
     List<Employee> findByContractor(Contractor contractor);
     List<Employee> findByEmail(String email);
     boolean existsByEmpCode(String empCode);

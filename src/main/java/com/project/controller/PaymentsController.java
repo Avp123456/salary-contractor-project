@@ -85,7 +85,7 @@ public class PaymentsController {
     @GetMapping("/contractor/payments")
     public String payments(Model model, HttpSession session) {
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-        if (contractor == null) return "redirect:/login";
+        if (contractor == null) return "redirect:/contractor/login";
         Long contractorId = contractor.getContractorId();
 
         // 1. Get all registered employees
@@ -299,7 +299,7 @@ System.out.println("[INFO] Payments Page Visited "+getTime());
     @GetMapping("/contractor/payslip/{id}")
     public String viewPayslip(@PathVariable Long id, Model model, HttpSession session) {
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-        if (contractor == null) return "redirect:/login";
+        if (contractor == null) return "redirect:/contractor/login";
         Long contractorId = contractor.getContractorId();
 
         UploadedFileData data = dataRepo.findById(id).orElse(null);

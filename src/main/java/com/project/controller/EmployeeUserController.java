@@ -91,7 +91,7 @@ public class EmployeeUserController {
     @GetMapping("/dashboard")
     public String dashboard(Model model, HttpSession session) {
         Employee employee = getLoggedInEmployee(session);
-        if (employee == null) return "redirect:/login";
+        if (employee == null) return "redirect:/employee/login";
 
         // Fetch all payslips for this employee
         List<UploadedFileData> allData = dataRepo.findByContractorId(employee.getContractor().getContractorId());
@@ -165,34 +165,10 @@ public class EmployeeUserController {
         return "employee/dashboard";
     }
 
-    @GetMapping("/change-password")
-    public String changePasswordPage(HttpSession session, Model model) {
-        Employee employee = getLoggedInEmployee(session);
-        if (employee == null) return "redirect:/login";
-        model.addAttribute("employee", employee);
-        return "employee/change-password";
-    }
-
-    @PostMapping("/update-password")
-    public String updatePassword(@RequestParam String newPassword, HttpSession session) {
-        Employee employee = getLoggedInEmployee(session);
-        if (employee == null) return "redirect:/login";
-
-        Employee dbEmp = employeeService.getById(employee.getEmployeeId());
-        dbEmp.setPassword(newPassword);
-        dbEmp.setPasswordChanged(true);
-        employeeService.save(dbEmp);
-
-        // Update session
-        session.setAttribute("loggedInEmployee", dbEmp);
-
-        return "redirect:/employee/dashboard?passwordUpdated=true";
-    }
-
     @GetMapping("/payslip/{id}")
     public String viewPayslip(@PathVariable Long id, Model model, HttpSession session) {
         Employee employee = getLoggedInEmployee(session);
-        if (employee == null) return "redirect:/login";
+        if (employee == null) return "redirect:/employee/login";
 
         UploadedFileData data = dataRepo.findById(id).orElse(null);
         if (data == null || data.getPayslipGenerated() == null || !data.getPayslipGenerated()) return "redirect:/employee/dashboard";

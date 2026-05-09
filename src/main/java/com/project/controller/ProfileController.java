@@ -23,7 +23,7 @@ public class ProfileController {
 
         Contractor sessionContractor = (Contractor) session.getAttribute("loggedInContractor");
         if (sessionContractor == null) {
-            return "redirect:/login";
+            return "redirect:/contractor/login";
         }
 
         Contractor contractor = userService.findByEmail(sessionContractor.getEmail());
@@ -38,7 +38,7 @@ public class ProfileController {
 
         Contractor sessionContractor = (Contractor) session.getAttribute("loggedInContractor");
         if (sessionContractor == null) {
-            return "redirect:/login";
+            return "redirect:/contractor/login";
         }
 
         Contractor contractor = userService.findByEmail(sessionContractor.getEmail());

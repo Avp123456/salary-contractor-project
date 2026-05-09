@@ -14,15 +14,20 @@ public class SessionInterceptor implements HandlerInterceptor {
         HttpSession session = request.getSession(false);
         String path = request.getRequestURI();
 
+        // Allow access to login pages
+        if (path.equals("/contractor/login") || path.equals("/employee/login")) {
+            return true;
+        }
+
         // Check if the user is trying to access protected contractor or employee routes
         if (path.startsWith("/contractor/")) {
             if (session == null || session.getAttribute("loggedInContractor") == null) {
-                response.sendRedirect("/login?error=unauthorized");
+                response.sendRedirect("/contractor/login?error=unauthorized");
                 return false;
             }
         } else if (path.startsWith("/employee/")) {
             if (session == null || session.getAttribute("loggedInEmployee") == null) {
-                response.sendRedirect("/login?error=unauthorized");
+                response.sendRedirect("/employee/login?error=unauthorized");
                 return false;
             }
         }

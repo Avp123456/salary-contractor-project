@@ -7,8 +7,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-
-  
 @Configuration
 public class SecurityConfig {
 
@@ -16,20 +14,32 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
-            .csrf().disable()
-            .authorizeRequests()
+            .csrf(csrf -> csrf.disable())
+
+            .authorizeHttpRequests(auth -> auth
                 .antMatchers(
                         "/",
                         "/login",
+                        "/contractor/login",
+                        "/employee/login",
                         "/logout",
                         "/css/**",
                         "/js/**",
-                        "/images/**"
+                        "/images/**",
+                        "/oauth2/**"
                 ).permitAll()
-                .anyRequest().permitAll()
-            .and()
-            .formLogin().disable()
-            .logout().disable();
+
+                .anyRequest().authenticated()
+            )
+
+            .oauth2Login(oauth -> oauth
+                .loginPage("/contractor/login")
+                .defaultSuccessUrl("/google-success", true)
+            )
+
+            .logout(logout -> logout
+                .logoutSuccessUrl("/contractor/login?logout")
+            );
 
         return http.build();
     }

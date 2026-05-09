@@ -46,6 +46,7 @@
                             <td th:text="${config.headerCount + ' / ' + config.trailerCount}"></td>
                             <td th:text="${config.totalPayableColumn}"></td>
                             <td class="text-center">
+                                <button class="btn btn-outline-info btn-sm px-3 me-1" th:onclick="'previewConfig(' + ${config.id} + ')'">Preview</button>
                                 <button class="btn btn-outline-primary btn-sm px-3 me-1" th:onclick="'showEditModal(' + ${config.id} + ')'">Edit</button>
                                 <button class="btn btn-outline-danger btn-sm px-3" th:onclick="'deleteConfig(' + ${config.id} + ')'">Delete</button>
                             </td>
@@ -117,6 +118,7 @@
                                     <th>Column Name</th>
                                     <th>Data Type</th>
                                     <th>Pos (Excel)</th>
+                                    <th class="text-center">E/D</th>
                                     <th>Parse</th>
                                     <th>Key</th>
                                     <th class="text-center"></th>
@@ -225,6 +227,7 @@
                         columnName: col.columnName,
                         dataType: col.dataType,
                         columnPosition: col.columnPosition,
+                        salaryType: col.salaryType || null,
                         parse: col.parse === false ? false : true,
                         isKey: col.isKey === true ? true : false
                     }));
@@ -239,7 +242,7 @@
             saveCurrentPageData();
             
             // Add new empty column
-            columnsData.push({ fileType: '', columnName: '', dataType: 'STRING', columnPosition: '', parse: true, isKey: false });
+            columnsData.push({ fileType: '', columnName: '', dataType: 'STRING', columnPosition: '', salaryType: null, parse: true, isKey: false });
             
             // Go to last page
             columnCurrentPage = Math.ceil(columnsData.length / columnPageSize) || 1;
@@ -254,11 +257,18 @@
                 const dataIdx = startIndex + idx;
                 if (dataIdx < columnsData.length) {
                     const inputs = row.querySelectorAll('input, select');
+                    let sType = null;
+                    if (inputs[2].value === 'NUMBER') {
+                        const checkedRadio = row.querySelector('input[type="radio"]:checked');
+                        if (checkedRadio) sType = checkedRadio.value;
+                    }
+
                     columnsData[dataIdx] = {
                         fileType: inputs[0].value,
                         columnName: inputs[1].value.trim(),
                         dataType: inputs[2].value,
                         columnPosition: inputs[3].value,
+                        salaryType: sType,
                         parse: inputs[4].value === 'true',
                         isKey: inputs[5].value === 'true'
                     };
@@ -299,12 +309,24 @@
                     </td>
                     <td><input type="text" class="form-control form-control-sm" value="${col.columnName}"></td>
                     <td>
-                        <select class="form-select form-select-sm">
+                        <select class="form-select form-select-sm" onchange="toggleED(this)" required>
                             <option value="STRING" ${col.dataType === 'STRING' ? 'selected' : ''}>STRING</option>
                             <option value="NUMBER" ${col.dataType === 'NUMBER' ? 'selected' : ''}>NUMBER</option>
                         </select>
                     </td>
                     <td><input type="number" class="form-control form-control-sm" value="${col.columnPosition}"></td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2 ed-container" style="${col.dataType === 'NUMBER' ? '' : 'display:none'}">
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input" type="radio" name="salaryType_${globalIdx}" value="E" ${col.salaryType === 'E' ? 'checked' : ''}>
+                                <label class="form-check-label" style="font-size: 0.7rem;">E</label>
+                            </div>
+                            <div class="form-check form-check-inline m-0">
+                                <input class="form-check-input" type="radio" name="salaryType_${globalIdx}" value="D" ${col.salaryType === 'D' ? 'checked' : ''}>
+                                <label class="form-check-label" style="font-size: 0.7rem;">D</label>
+                            </div>
+                        </div>
+                    </td>
                     <td>
                         <select class="form-select form-select-sm">
                             <option value="true" ${col.parse ? 'selected' : ''}>Yes</option>
@@ -433,6 +455,21 @@
                     window.location.href = '/contractor/delete-configuration/' + id;
                 }
             });
+        }
+
+        function toggleED(select) {
+            const row = select.closest('tr');
+            const container = row.querySelector('.ed-container');
+            if (select.value === 'NUMBER') {
+                container.style.display = 'flex';
+            } else {
+                container.style.display = 'none';
+                row.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+            }
+        }
+
+        function previewConfig(id) {
+            window.location.href = '/contractor/preview-config/' + id;
         }
     </script>
 </body>
