@@ -163,11 +163,12 @@
             </div>
 
             <!-- Pagination Controls -->
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="small text-muted" id="paginationInfo">Showing 1 to 10 of 10</div>
+            <div id="paginationControls" class="d-flex justify-content-center mt-3 pb-2">
                 <nav>
-                    <ul class="pagination pagination-sm mb-0" id="paginationControls">
-                        <!-- Dynamic -->
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item"><button class="page-link" onclick="changePage(currentPage - 1)" id="prevBtn">Previous</button></li>
+                        <li class="page-item disabled"><span class="page-link" id="pageInfo">1 / 1</span></li>
+                        <li class="page-item"><button class="page-link" onclick="changePage(currentPage + 1)" id="nextBtn">Next</button></li>
                     </ul>
                 </nav>
             </div>
@@ -359,28 +360,21 @@
 
         function updatePagination() {
             const rows = document.getElementById('columnBody').rows;
-            const pageCount = Math.ceil(rows.length / recordsPerPage);
-            const controls = document.getElementById('paginationControls');
-            controls.innerHTML = '';
-
-            for (let i = 1; i <= pageCount; i++) {
-                const li = document.createElement('li');
-                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-                li.innerHTML = `<a class="page-link" href="#" onclick="goToPage(${i})">${i}</a>`;
-                controls.appendChild(li);
-            }
+            const totalPages = Math.ceil(rows.length / recordsPerPage) || 1;
+            
+            document.getElementById('pageInfo').innerText = `${currentPage} / ${totalPages}`;
+            document.getElementById('prevBtn').parentElement.classList.toggle('disabled', currentPage === 1);
+            document.getElementById('nextBtn').parentElement.classList.toggle('disabled', currentPage === totalPages);
+            
             applyPagination();
         }
 
         function goToPage(p) {
+            const rows = document.getElementById('columnBody').rows;
+            const totalPages = Math.ceil(rows.length / recordsPerPage) || 1;
+            if (p < 1 || p > totalPages) return;
             currentPage = p;
-            applyPagination();
-            
-            const controls = document.getElementById('paginationControls').children;
-            for (let i = 0; i < controls.length; i++) {
-                controls[i].classList.remove('active');
-                if (i + 1 === currentPage) controls[i].classList.add('active');
-            }
+            updatePagination();
         }
 
         function applyPagination() {
@@ -390,14 +384,6 @@
 
             for (let i = 0; i < rows.length; i++) {
                 rows[i].style.display = (i >= start && i < end) ? '' : 'none';
-            }
-
-            const info = document.getElementById('paginationInfo');
-            const total = rows.length;
-            if (total === 0) {
-                info.innerText = 'No records';
-            } else {
-                info.innerText = `Showing ${start + 1} to ${Math.min(end, total)} of ${total}`;
             }
         }
 

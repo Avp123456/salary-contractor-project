@@ -26,11 +26,13 @@ import com.project.entity.UploadedFileData;
 import com.project.entity.UploadedFiles;
 import com.project.entity.ReportConfiguration;
 import com.project.entity.ReportConfigurationColumn;
+import com.project.entity.ReportConfigurationFile;
 import com.project.repository.UploadedFileColumnsRepository;
 import com.project.repository.UploadedFileDataRepository;
 import com.project.repository.UploadedFileRepository;
 import com.project.repository.ReportConfigurationRepository;
 import com.project.repository.ReportConfigurationColumnRepository;
+import com.project.repository.ReportConfigurationFileRepository;
 import com.project.service.ExcelService;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -58,6 +60,9 @@ public class FilesController {
     
     @Autowired
     private ReportConfigurationColumnRepository configColRepo;
+    
+    @Autowired
+    private ReportConfigurationFileRepository configFileRepo;
 
     @Autowired
     private ExcelService excelService;
@@ -330,6 +335,7 @@ public class FilesController {
             d.setContractorId(contractorId);
 
             if (configId != null) {
+                double rowTotal = 0;
                 for (int i = 0; i < columns.size(); i++) {
                     UploadedFileColumns col = columns.get(i);
                     if (col.isParse() == null || !col.isParse()) continue;
@@ -338,9 +344,18 @@ public class FilesController {
                     if (col.getActualColumn().startsWith("str")) {
                         setString(d, col.getActualColumn(), value);
                     } else if (col.getActualColumn().startsWith("num")) {
+                        double numVal = parseSafeDouble(value);
                         setNumber(d, col.getActualColumn(), value);
+                        
+                        // Dynamic Calculation Logic
+                        if ("E".equalsIgnoreCase(col.getSalaryType())) {
+                            rowTotal += numVal;
+                        } else if ("D".equalsIgnoreCase(col.getSalaryType())) {
+                            rowTotal -= numVal;
+                        }
                     }
                 }
+                d.setTotalAmt(rowTotal);
             } else {
                 for (int i = 0; i < parseColumns.size(); i++) {
                     UploadedFileColumns col = parseColumns.get(i);
@@ -493,13 +508,26 @@ System.out.println("[INFO] Report Page Visited "+getTime());
     @GetMapping("/contractor/configurations")
     public String configurations(Model model, HttpSession session) {
         Long contractorId = getCurrentContractorId(session);
-        model.addAttribute("configurations", configRepo.findByContractorId(contractorId));
+        List<ReportConfiguration> configs = configRepo.findByContractorId(contractorId);
+        
+        List<java.util.Map<String, Object>> enrichedConfigs = new ArrayList<>();
+        for (ReportConfiguration c : configs) {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", c.getId());
+            map.put("configName", c.getConfigName());
+            map.put("fileCount", configFileRepo.findByConfigId(c.getId()).size());
+            map.put("columnCount", configColRepo.findByConfigId(c.getId()).size());
+            enrichedConfigs.add(map);
+        }
+        
+        model.addAttribute("configurations", enrichedConfigs);
         model.addAttribute("uploadedFiles", fileRepo.findByContractorId(contractorId));
         return "contractor/configuration";
     }
 
     @PostMapping("/contractor/save-configuration")
     @ResponseBody
+    @org.springframework.transaction.annotation.Transactional
     public String saveConfiguration(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         Long contractorId = getCurrentContractorId(session);
         Object idObj = payload.get("id");
@@ -525,8 +553,6 @@ System.out.println("[INFO] Report Page Visited "+getTime());
         config.setConfigName(name);
         config.setHeaderCount(header);
         config.setTrailerCount(trailer);
-        config.setTotalPayableColumn(totalPos);
-        config.setOvertimeTotalAmountColumn(overtimeTotalPos);
         configRepo.save(config);
 
         List<ReportConfigurationColumn> configColsToSave = new ArrayList<>();
@@ -543,6 +569,24 @@ System.out.println("[INFO] Report Page Visited "+getTime());
             configColsToSave.add(col);
         }
         configColRepo.saveAll(configColsToSave);
+
+        // Save Per-File Config (Header/Trailer)
+        configFileRepo.deleteByConfigId(config.getId());
+        List<java.util.Map<String, Object>> fileConfigs = (List<java.util.Map<String, Object>>) payload.get("fileConfigs");
+        if (fileConfigs != null) {
+            List<ReportConfigurationFile> configFilesToSave = new ArrayList<>();
+            for (java.util.Map<String, Object> fMap : fileConfigs) {
+                ReportConfigurationFile cf = new ReportConfigurationFile();
+                cf.setConfigId(config.getId());
+                cf.setFileName(fMap.get("fileName").toString());
+                
+                cf.setHeaderSkip(parseSafeInt(fMap.get("headerSkip"), 0));
+                cf.setTrailerSkip(parseSafeInt(fMap.get("trailerSkip"), 0));
+                
+                configFilesToSave.add(cf);
+            }
+            configFileRepo.saveAll(configFilesToSave);
+        }
 
         return "OK";
     }
@@ -562,6 +606,7 @@ System.out.println("[INFO] Report Page Visited "+getTime());
         res.put("overtimeTotalAmountColumn", config.getOvertimeTotalAmountColumn());
         List<ReportConfigurationColumn> cols = configColRepo.findByConfigId(id);
         res.put("columns", cols);
+        res.put("fileConfigs", configFileRepo.findByConfigId(id));
         return res;
     }
 
@@ -597,6 +642,9 @@ System.out.println("[INFO] Report Page Visited "+getTime());
 
         // Optimize: Fetch all files for contractor once
         List<UploadedFiles> allContractorFiles = fileRepo.findByContractorId(contractorId);
+        List<ReportConfigurationFile> configFiles = configFileRepo.findByConfigId(id);
+        Map<String, ReportConfigurationFile> configFileMap = configFiles.stream()
+            .collect(Collectors.toMap(ReportConfigurationFile::getFileName, f -> f, (a, b) -> a));
 
         for (String fileName : fileGroups.keySet()) {
             UploadedFiles file = allContractorFiles.stream()
@@ -617,8 +665,17 @@ System.out.println("[INFO] Report Page Visited "+getTime());
                     .filter(c -> c.getIsKey() != null && c.getIsKey())
                     .collect(Collectors.toList());
                 
-                int start = config.getHeaderCount() != null ? config.getHeaderCount() : 0;
-                int end = rawData.size() - (config.getTrailerCount() != null ? config.getTrailerCount() : 0);
+                ReportConfigurationFile cf = configFileMap.get(fileName);
+                int start = 0;
+                int trailer = 0;
+                if (cf != null) {
+                    start = cf.getHeaderSkip();
+                    trailer = cf.getTrailerSkip();
+                } else {
+                    start = config.getHeaderCount() != null ? config.getHeaderCount() : 0;
+                    trailer = config.getTrailerCount() != null ? config.getTrailerCount() : 0;
+                }
+                int end = rawData.size() - trailer;
                 
                 Map<String, List<String>> dataMap = new HashMap<>();
                 for (int i = start; i < end && i < rawData.size(); i++) {
@@ -627,7 +684,10 @@ System.out.println("[INFO] Report Page Visited "+getTime());
                     
                     if (!keyCols.isEmpty()) {
                         StringBuilder sb = new StringBuilder();
-                        for (ReportConfigurationColumn k : keyCols) {
+                        List<ReportConfigurationColumn> sortedKeys = keyCols.stream()
+                            .sorted(Comparator.comparingInt(ReportConfigurationColumn::getColumnPosition))
+                            .collect(Collectors.toList());
+                        for (ReportConfigurationColumn k : sortedKeys) {
                             int kPos = k.getColumnPosition() - 1;
                             String val = (kPos >= 0 && kPos < row.size()) ? row.get(kPos).trim() : "";
                             sb.append(val).append("|");
@@ -637,17 +697,19 @@ System.out.println("[INFO] Report Page Visited "+getTime());
                         key = String.valueOf(i); // Fallback to index if no key
                     }
                     
-                    if (key.isEmpty() || key.replace("|", "").trim().isEmpty()) continue;
+                    if (key.isEmpty() || key.replace("|", "").trim().isEmpty() || key.equals("|")) continue;
                     
                     List<String> extracted = new ArrayList<>();
                     for (ReportConfigurationColumn col : configCols) {
                         if (col.getFileType().equals(fileName)) {
-                             int pos = col.getColumnPosition() - 1;
-                             extracted.add((pos >= 0 && pos < row.size()) ? row.get(pos) : "");
+                            int pos = col.getColumnPosition() - 1;
+                            String val = (pos >= 0 && pos < row.size()) ? row.get(pos) : "";
+                            extracted.add(val);
                         } else {
-                             extracted.add(null);
+                            extracted.add(null); // Placeholder for other file's columns
                         }
                     }
+
                     dataMap.put(key, extracted);
                 }
                 fileDataMaps.put(fileName, dataMap);
@@ -678,26 +740,55 @@ System.out.println("[INFO] Report Page Visited "+getTime());
             if (rowHasData) combinedData.add(combinedRow);
         }
 
+        // Filter for final display
+        List<Integer> visibleIndices = new ArrayList<>();
+        for (int i = 0; i < configCols.size(); i++) {
+            ReportConfigurationColumn cc = configCols.get(i);
+            if (cc.getParse() == null || cc.getParse()) {
+                visibleIndices.add(i);
+            }
+        }
+
+        List<List<String>> finalCombinedData = new ArrayList<>();
+        for (List<String> row : combinedData) {
+            List<String> visibleRow = new ArrayList<>();
+            for (Integer idx : visibleIndices) {
+                visibleRow.add(row.get(idx));
+            }
+            finalCombinedData.add(visibleRow);
+        }
+
         List<UploadedFileColumns> displayCols = new ArrayList<>();
-        for (ReportConfigurationColumn cc : configCols) {
+        for (Integer idx : visibleIndices) {
+            ReportConfigurationColumn cc = configCols.get(idx);
             UploadedFileColumns uc = new UploadedFileColumns();
             uc.setColumnName(cc.getColumnName());
-            uc.setDataType(cc.getDataType());
             uc.setColumnPosition(cc.getColumnPosition());
-            uc.setParse(cc.getParse());
-            uc.setSalaryType(cc.getSalaryType());
+            uc.setDataType(cc.getDataType());
             uc.setFileType(cc.getFileType());
+            uc.setParse(true);
+            uc.setSalaryType(cc.getSalaryType());
             uc.setIsKey(cc.getIsKey() != null ? cc.getIsKey() : false);
             displayCols.add(uc);
         }
 
+
         if (primaryFileId != null) {
             UploadedFiles f = fileRepo.findById(primaryFileId).orElse(null);
             if (f != null) {
-                f.setHeaderCount(config.getHeaderCount());
-                f.setTrailerCount(config.getTrailerCount());
-                f.setTotalPayableColumn(config.getTotalPayableColumn());
-                f.setOvertimeTotalAmountColumn(config.getOvertimeTotalAmountColumn());
+                // Find config for this specific file if available
+                ReportConfigurationFile pcf = configFileMap.get(f.getFileName());
+                if (pcf != null) {
+                    f.setHeaderCount(pcf.getHeaderSkip());
+                    f.setTrailerCount(pcf.getTrailerSkip());
+                    f.setTotalPayableColumn(pcf.getTotalPayableColumn());
+                    f.setOvertimeTotalAmountColumn(pcf.getOvertimeTotalAmountColumn());
+                } else {
+                    f.setHeaderCount(config.getHeaderCount());
+                    f.setTrailerCount(config.getTrailerCount());
+                    f.setTotalPayableColumn(config.getTotalPayableColumn());
+                    f.setOvertimeTotalAmountColumn(config.getOvertimeTotalAmountColumn());
+                }
                 fileRepo.save(f);
                 
                 columnRepo.deleteByConfigId(id);
@@ -706,9 +797,23 @@ System.out.println("[INFO] Report Page Visited "+getTime());
                     uc.setFileId(primaryFileId);
                     uc.setConfigId(id);
                     uc.setContractorId(contractorId);
+                    
+                    ReportConfigurationFile cfile = configFileMap.get(uc.getFileType());
+                    if (cfile != null) {
+                        Integer totalCol = cfile.getTotalPayableColumn();
+                        Integer otCol = cfile.getOvertimeTotalAmountColumn();
+                        
+                        if (totalCol != null && totalCol == uc.getColumnPosition()) {
+                             uc.setSalaryType("TOTAL_PAYABLE");
+                        } else if (otCol != null && otCol == uc.getColumnPosition()) {
+                             uc.setSalaryType("OT_PAYABLE");
+                        }
+                    }
                     if (uc.isParse() != null && uc.isParse()) {
                         if ("STRING".equalsIgnoreCase(uc.getDataType())) uc.setActualColumn("str" + sCount++);
                         else uc.setActualColumn("num" + nCount++);
+                    } else {
+                        uc.setActualColumn(null); // Explicitly null for non-parsed cols
                     }
                 }
                 columnRepo.saveAll(displayCols);
@@ -717,10 +822,31 @@ System.out.println("[INFO] Report Page Visited "+getTime());
             session.setAttribute("configId", id);
         }
 
-        session.setAttribute("processedData", combinedData);
-        model.addAttribute("data", combinedData);
+        session.setAttribute("processedData", finalCombinedData);
+        model.addAttribute("data", finalCombinedData);
         model.addAttribute("columns", displayCols);
         
         return "contractor/preview";
+    }
+
+    private double parseSafeDouble(String val) {
+        if (val == null || val.trim().isEmpty()) return 0.0;
+        try {
+            return Double.parseDouble(val.replaceAll("[^0-9.-]", ""));
+        } catch (Exception e) { return 0.0; }
+    }
+
+    private int parseSafeInt(Object obj, int defaultVal) {
+        if (obj == null) return defaultVal;
+        String str = obj.toString().trim();
+        if (str.isEmpty()) return defaultVal;
+        try { return Integer.parseInt(str); } catch (Exception e) { return defaultVal; }
+    }
+
+    private Integer parseSafeInteger(Object obj) {
+        if (obj == null) return null;
+        String str = obj.toString().trim();
+        if (str.isEmpty()) return null;
+        try { return Integer.parseInt(str); } catch (Exception e) { return null; }
     }
 }
