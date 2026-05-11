@@ -15,6 +15,7 @@ import com.project.entity.UploadedFiles;
 import com.project.repository.UploadedFileColumnsRepository;
 import com.project.repository.UploadedFileDataRepository;
 import com.project.repository.UploadedFileRepository;
+import com.project.repository.ReportConfigurationRepository;
 
 import javax.servlet.http.HttpSession;
 @Controller
@@ -32,6 +33,9 @@ public class SalaryController {
     @Autowired
     private UploadedFileRepository fileRepo;
     
+    @Autowired
+    private ReportConfigurationRepository configRepo;
+    
     private Long getCurrentContractorId(HttpSession session) {
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
         return (contractor != null) ? contractor.getContractorId() : null;
@@ -40,37 +44,84 @@ public class SalaryController {
     @GetMapping("/contractor/salary")
     public String salary(Model model, HttpSession session) {
         Long contractorId = getCurrentContractorId(session);
-        model.addAttribute("files", fileRepo.findByContractorId(contractorId));
+        model.addAttribute("configurations", configRepo.findByContractorId(contractorId));
         System.out.println("[INFO] Salary Page Visited "+getTime());
 
         return "contractor/salary";
     }
 
     @GetMapping("/contractor/show-salary-data")
-    public String showSalaryData(@RequestParam Long fileId, Model model, HttpSession session) {
+    public String showSalaryData(@RequestParam(required = false) Long fileId, 
+                                 @RequestParam(required = false) Long configId,
+                                 Model model, HttpSession session) {
         Long contractorId = getCurrentContractorId(session);
-        UploadedFiles file = fileRepo.findById(fileId).orElse(null);
-        if (file == null || !file.getContractorId().equals(contractorId)) {
-            System.out.println("[INFO]Salary Page Visited "+getTime());
+        List<UploadedFileColumns> columns = null;
+        List<UploadedFileData> dataList = null;
 
-        	return"redirect:/contractor/salary";}
+        String selectedConfigName = "";
+        if (configId != null) {
+            com.project.entity.ReportConfiguration config = configRepo.findById(configId).orElse(null);
+            if (config == null || !config.getContractorId().equals(contractorId)) return "redirect:/contractor/salary";
+            selectedConfigName = config.getConfigName();
+            
+            dataList = dataRepo.findByConfigId(configId);
+            columns = columnRepo.findByConfigId(configId);
+            
+            if (columns.isEmpty() && !dataList.isEmpty()) {
+                columns = columnRepo.findByFileId(dataList.get(0).getFileId());
+            }
+            
+            if (columns.isEmpty()) {
+                model.addAttribute("error", "No column mappings found for configuration: " + selectedConfigName + ". Please go to 'Configuration' -> 'Preview' -> 'Confirm & Save' to generate data.");
+            }
+        } else if (fileId != null) {
+            UploadedFiles file = fileRepo.findById(fileId).orElse(null);
+            if (file == null || !file.getContractorId().equals(contractorId)) return "redirect:/contractor/salary";
+            columns = columnRepo.findByFileId(fileId);
+            dataList = dataRepo.findByFileId(fileId);
+        }
 
-        List<UploadedFileColumns> columns = columnRepo.findByFileId(fileId);
+        if (columns == null || columns.isEmpty()) {
+            model.addAttribute("configurations", configRepo.findByContractorId(contractorId));
+            model.addAttribute("selectedConfigId", configId);
+            return "contractor/salary";
+        }
+
         columns.sort(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition));
         
         List<UploadedFileColumns> displayColumns = new java.util.ArrayList<>();
-        for(UploadedFileColumns c : columns) if(c.isParse() != null && c.isParse()) displayColumns.add(c);
+        for(UploadedFileColumns c : columns) {
+            if(c.isParse() != null && c.isParse()) {
+                displayColumns.add(c);
+            }
+        }
 
-        List<UploadedFileData> dataList = dataRepo.findByFileId(fileId);
         List<List<String>> rows = new java.util.ArrayList<>();
-        // Identify ID column for filtering
-        final UploadedFileColumns idCol = displayColumns.stream()
-            .filter(c -> {
-                String name = c.getColumnName().toUpperCase();
-                return name.contains("ID") || name.contains("CODE") || name.contains("EMP");
-            })
-            .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+        // Identify the primary key column (isKey=true) or fall back to ID/CODE columns
+        UploadedFileColumns idCol = displayColumns.stream()
+            .filter(c -> c.getIsKey() != null && c.getIsKey())
+            .findFirst()
             .orElse(null);
+
+        if (idCol == null) {
+            idCol = displayColumns.stream()
+                .filter(c -> {
+                    String name = c.getColumnName().toUpperCase();
+                    return (name.contains("EMP") || name.contains("EMPLOYEE")) && (name.contains("ID") || name.contains("CODE"));
+                })
+                .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+                .orElse(null);
+        }
+
+        if (idCol == null) {
+            idCol = displayColumns.stream()
+                .filter(c -> {
+                    String name = c.getColumnName().toUpperCase();
+                    return name.contains("ID") || name.contains("CODE");
+                })
+                .min(java.util.Comparator.comparingInt(UploadedFileColumns::getColumnPosition))
+                .orElse(null);
+        }
 
         for (UploadedFileData data : dataList) {
             // Skip rows where ID is empty (usually these are 'Total' rows in Excel)
@@ -105,12 +156,11 @@ public class SalaryController {
             rows.add(row);
         }
 
-        model.addAttribute("files", fileRepo.findByContractorId(contractorId));
+        model.addAttribute("configurations", configRepo.findByContractorId(contractorId));
+        model.addAttribute("selectedConfigId", configId);
         model.addAttribute("selectedFileId", fileId);
         model.addAttribute("columns", displayColumns);
         model.addAttribute("rows", rows);
-        System.out.println("[INFO] Salary Page Visited "+getTime());
-
         return "contractor/salary";
     }
 
