@@ -16,6 +16,7 @@ import javax.persistence.Table;
 	    private Long id;
 
 	    private Long fileId;
+	    private Long configId;
 	    private Long contractorId;
 	    
 	    public Long getContractorId() {
@@ -152,6 +153,12 @@ import javax.persistence.Table;
 		}
 		public void setFileId(Long fileId) {
 			this.fileId = fileId;
+		}
+		public Long getConfigId() {
+			return configId;
+		}
+		public void setConfigId(Long configId) {
+			this.configId = configId;
 		}
 		public String getStr1() {
 			return str1;

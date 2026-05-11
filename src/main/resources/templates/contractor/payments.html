@@ -76,15 +76,19 @@
                     <tbody>
                         <tr th:each="p, stat : ${payments}" th:id="'row-' + ${p.id}">
                             <td th:text="${stat.count}"></td>
-                            <td class="fw-medium text-primary" th:text="${p.empCode}"></td>
-                            <td th:text="${p.name}"></td>
+                            <td th:text="${p.empCode}"></td>
+                            <td>
+                                <span th:text="${p.name}"></span>
+                                <span th:if="${p.registered == false}" class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">Not Registered</span>
+                            </td>
                             <td class="fw-bold amount-cell" th:text="'₹' + ${#numbers.formatDecimal(p.amount, 1, 'COMMA', 2, 'POINT')}"></td>
                             <td class="text-center">
                                 <button class="btn btn-view btn-sm px-3" style="font-size: 13px;" th:onclick="'openSalaryModal(' + ${p.id} + ')'">View Structure</button>
                                 
                                 <button class="btn btn-primary btn-sm px-3 ms-1" 
                                         style="background-color: #0f172a; border: none; font-size: 13px;"
-                                        th:onclick="'showPayslipOptions(' + ${p.id} + ')'">View Slip</button>
+                                        th:onclick="'showPayslipOptions(' + ${p.id} + ')'"
+                                        th:disabled="${p.registered == false}">View Slip</button>
                             </td>
                         </tr>
                         <tr th:if="${payments == null || payments.empty}">

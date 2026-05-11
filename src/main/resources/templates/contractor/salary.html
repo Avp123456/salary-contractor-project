@@ -110,6 +110,8 @@
         .custom-swal-popup { border-radius: 12px !important; border: 1px solid #3b82f6 !important; }
         .custom-swal-html { text-align: left !important; font-size: 1rem !important; padding: 20px !important; color: #1e293b !important; }
         .custom-swal-confirm { background-color: #eff6ff !important; color: #2563eb !important; border: 1px solid #3b82f6 !important; padding: 6px 20px !important; font-weight: 600 !important; }
+        .rectangular-error-toast { margin-top: 65px !important; border-radius: 4px !important; font-size: 0.82rem !important; border: 1px solid #991b1b; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important; color: white !important; }
+        .rectangular-toast { margin-top: 65px !important; border-radius: 4px !important; font-size: 0.82rem !important; border: 1px solid #047857; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important; color: white !important; }
     </style>
 </head>
 <body>
@@ -118,16 +120,22 @@
 
     <div class="container">
         <div class="header-section">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert" th:if="${error}">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
             <div class="filter-section">
                 <form id="salaryForm" action="/contractor/show-salary-data" method="get" class="row g-3 align-items-end">
                     <div class="col-md-6">
-                        <label class="form-label small fw-bold text-muted">Select Uploaded File</label>
-                        <select id="fileIdSelect" name="fileId" class="form-select" required>
-                            <option value="" disabled th:selected="${selectedFileId == null}">Choose a file...</option>
-                            <option th:each="f : ${files}" 
-                                    th:value="${f.id}" 
-                                    th:text="${f.fileName}"
-                                    th:selected="${f.id == selectedFileId}"></option>
+                        <label class="form-label small fw-bold text-muted">Select Configuration Name</label>
+                        <select id="configIdSelect" name="configId" class="form-select" required>
+                            <option value="" disabled th:selected="${selectedConfigId == null}">Choose a configuration...</option>
+                            <option th:each="c : ${configurations}" 
+                                    th:value="${c.id}" 
+                                    th:text="${c.configName}"
+                                    th:selected="${c.id == selectedConfigId}"></option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -171,7 +179,7 @@
                     <tbody th:if="${rows.empty}" id="noDataBody">
                         <tr>
                             <td th:colspan="${columns.size() + 1}" class="text-center py-5 text-muted">
-                                No data found for this file.
+                                No data found for this configuration.
                             </td>
                         </tr>
                     </tbody>
@@ -207,7 +215,7 @@
                     <line x1="16" y1="17" x2="8" y2="17"></line>
                     <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
-                <p>Select a file above to view processed salary data.</p>
+                <p>Select a configuration above to view processed salary data.</p>
             </div>
         </div>
     </div>
@@ -220,15 +228,32 @@
         const pageSize = 15;
         let currentSort = { col: -1, asc: true };
         
+        const currentlyLoadedConfigId = [[${selectedConfigId}]];
         const currentlyLoadedFileId = [[${selectedFileId}]];
 
         function handleShowData() {
-            const selectedFileId = document.getElementById('fileIdSelect').value;
-            if (!selectedFileId) {
-                alert('Please select a file');
+            const selectedConfigId = document.getElementById('configIdSelect').value;
+            if (!selectedConfigId) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    icon: 'error',
+                    title: 'Please select a configuration',
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    iconColor: '#ffffff',
+                    padding: '8px 24px',
+                    width: 'auto',
+                    showClass: { popup: 'swal2-noanimation' },
+                    hideClass: { popup: '' },
+                    customClass: { popup: 'rectangular-error-toast' }
+                });
                 return;
             }
-            if (selectedFileId == currentlyLoadedFileId) {
+            if (selectedConfigId == currentlyLoadedConfigId) {
                 console.log('File already loaded, skipping refresh');
                 return;
             }

@@ -16,6 +16,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // Apply the interceptor to all paths except the public ones
         registry.addInterceptor(sessionInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/", "/login", "/logout", "/css/**", "/js/**", "/images/**");
+                .excludePathPatterns("/", "/login", "/contractor/login", "/employee/login", "/logout", "/css/**", "/js/**", "/images/**");
     }
 }

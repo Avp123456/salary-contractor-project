@@ -176,24 +176,7 @@ input[type="radio"]:checked + .role-card {
 
   <div class="login-card">
     <h3>Login</h3>
-
-    <form id="loginForm" th:action="@{/login}" method="post">
-
-      <!-- ROLE -->
-      <div class="role-selector">
-
-        <input type="radio" id="contractor" name="role" value="CONTRACTOR" hidden>
-        <label for="contractor" class="role-card">Contractor</label>
-
-        <input type="radio" id="employee" name="role" value="EMPLOYEE" hidden>
-        <label for="employee" class="role-card">Employee</label>
-
-      </div>
-
-      <!-- ERROR MESSAGE -->
-      <div id="roleError" class="role-error">
-        Please select Contractor or Employee
-      </div>
+      <form id="loginForm" th:action="@{${loginAction}}" method="post">
 
       <!-- INPUTS -->
       <input class="form-control mb-3" type="email" name="email" placeholder="Email" required>
@@ -204,9 +187,19 @@ input[type="radio"]:checked + .role-card {
       </div>
 
       <button type="submit" class="btn btn-login w-100">Login</button>
+      
+     	<button type="button"
+        	class="btn btn-light w-100 mt-3 border"
+        	onclick="googleLogin()">
+			<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+         	width="20"
+         	style="margin-right:10px;">
+
+    	Login with Google
+		</button>
 
       <!-- REGISTER LINK -->
-      <div class="mt-4 text-center">
+      <div class="mt-4 text-center" th:if="${isContractor}">
         <span style="font-size: 14px; color: #64748b;">Don't have an account?</span>
         <a th:href="@{/register}" style="color: #39d98a; font-weight: 600; text-decoration: none; margin-left: 5px;">Register</a>
       </div>
@@ -218,6 +211,10 @@ input[type="radio"]:checked + .role-card {
 </div>
 
 <script>
+function googleLogin() {
+    window.location.href = "/oauth2/authorization/google";
+}
+
 /* 🔥 TOGGLE PASSWORD VISIBILITY */
 const togglePassword = document.querySelector('#togglePassword');
 const passwordField = document.querySelector('#password');
@@ -229,16 +226,6 @@ togglePassword.addEventListener('click', function (e) {
     this.classList.toggle('bi-eye-slash');
 });
 
-/* 🔥 ROLE VALIDATION */
-document.getElementById("loginForm").addEventListener("submit", function(e) {
-  const role = document.querySelector('input[name="role"]:checked');
-
-  if (!role) {
-    e.preventDefault();
-    document.getElementById("roleError").style.display = "block";
-  }
-});
-
 /* 🔥 AUTO HIDE TOAST */
 setTimeout(() => {
   const toast = document.querySelector(".toast-message");
@@ -248,23 +235,6 @@ setTimeout(() => {
   }
 }, 3000);
 
-/* 🔥 TOGGLE RADIO (SELECT / UNSELECT) */
-const radios = document.querySelectorAll('input[name="role"]');
-
-radios.forEach(radio => {
-  radio.addEventListener("click", function(e) {
-
-    if (this.checked && this.dataset.wasChecked === "true") {
-    	
-      this.checked = false; // unselect
-      this.dataset.wasChecked = "false";
-    } else {
-      radios.forEach(r => r.dataset.wasChecked = "false");
-      this.dataset.wasChecked = "true";
-    }
-
-  });
-});
 </script>
 
 </body>

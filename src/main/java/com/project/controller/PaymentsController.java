@@ -52,7 +52,15 @@ public class PaymentsController {
                 .filter(c -> c.isParse() != null && c.isParse())
                 .collect(java.util.stream.Collectors.toList());
 
+        // 1. Priority: Check for explicit Key column
         UploadedFileColumns specific = filtered.stream()
+                .filter(c -> c.getIsKey() != null && c.getIsKey())
+                .findFirst()
+                .orElse(null);
+        if (specific != null) return specific;
+
+        // 2. Priority: Check for columns containing both (EMP/EMPLOYEE) and (ID/CODE)
+        specific = filtered.stream()
                 .filter(c -> {
                     String name = c.getColumnName().toUpperCase();
                     return (name.contains("EMP") || name.contains("EMPLOYEE")) && (name.contains("ID") || name.contains("CODE"));
@@ -61,6 +69,7 @@ public class PaymentsController {
                 .orElse(null);
         if (specific != null) return specific;
 
+        // 3. Priority: Fallback to columns containing just ID or CODE
         return filtered.stream()
                 .filter(c -> {
                     String name = c.getColumnName().toUpperCase();
@@ -85,7 +94,7 @@ public class PaymentsController {
     @GetMapping("/contractor/payments")
     public String payments(Model model, HttpSession session) {
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-        if (contractor == null) return "redirect:/login";
+        if (contractor == null) return "redirect:/contractor/login";
         Long contractorId = contractor.getContractorId();
 
         // 1. Get all registered employees
@@ -146,22 +155,29 @@ public class PaymentsController {
                                 .findFirst()
                                 .orElse(null);
 
+                            java.util.Map<String, Object> p = new java.util.HashMap<>();
+                            p.put("id", row.getId()); // Store the data ID
+                            p.put("empCode", empIdInFile);
+                            
                             if (match != null) {
-                                java.lang.reflect.Method mSal = UploadedFileData.class.getMethod(salaryGetter);
-                                Double amount = parseAmount(mSal.invoke(row));
-
-                                java.util.Map<String, Object> p = new java.util.HashMap<>();
-                                p.put("id", row.getId()); // Store the data ID
-                                p.put("empCode", match.getEmpCode());
                                 p.put("name", match.getName());
-                                p.put("amount", amount);
-                                p.put("status", row.getStatus() != null ? row.getStatus() : "Pending");
-                                p.put("structureViewed", row.getStructureViewed() != null ? row.getStructureViewed() : false);
-                                p.put("payslipGenerated", row.getPayslipGenerated() != null ? row.getPayslipGenerated() : false);
-                                paymentList.add(p);
+                                p.put("registered", true);
+                            } else {
+                                p.put("name", "Not Registered");
+                                p.put("registered", false);
                             }
+                            
+                            java.lang.reflect.Method mSal = UploadedFileData.class.getMethod(salaryGetter);
+                            Double amount = parseAmount(mSal.invoke(row));
+                            p.put("amount", amount);
+                            p.put("status", row.getStatus() != null ? row.getStatus() : "Pending");
+                            p.put("structureViewed", row.getStructureViewed() != null ? row.getStructureViewed() : false);
+                            p.put("payslipGenerated", row.getPayslipGenerated() != null ? row.getPayslipGenerated() : false);
+                            paymentList.add(p);
                         }
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -299,7 +315,7 @@ System.out.println("[INFO] Payments Page Visited "+getTime());
     @GetMapping("/contractor/payslip/{id}")
     public String viewPayslip(@PathVariable Long id, Model model, HttpSession session) {
         Contractor contractor = (Contractor) session.getAttribute("loggedInContractor");
-        if (contractor == null) return "redirect:/login";
+        if (contractor == null) return "redirect:/contractor/login";
         Long contractorId = contractor.getContractorId();
 
         UploadedFileData data = dataRepo.findById(id).orElse(null);
