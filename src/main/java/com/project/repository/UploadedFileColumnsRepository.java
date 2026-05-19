@@ -10,9 +10,14 @@ import java.util.List;
 @Repository
 public interface UploadedFileColumnsRepository extends JpaRepository<UploadedFileColumns, Long> {
     List<UploadedFileColumns> findByFileId(Long fileId);
+    List<UploadedFileColumns> findByConfigId(Long configId);
     List<UploadedFileColumns> findByFileIdAndContractorId(Long fileId, Long contractorId);
     
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     void deleteByFileId(Long fileId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    void deleteByConfigId(Long configId);
 }
