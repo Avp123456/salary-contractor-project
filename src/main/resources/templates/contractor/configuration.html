@@ -27,6 +27,8 @@
         .ed-cell { width: 100px; }
         .parse-cell, .key-cell { width: 90px; }
         .rectangular-toast { margin-top: 70px !important; border-radius: 4px !important; font-size: 0.82rem !important; border: 1px solid #047857; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
     </style>
 </head>
 <body>
@@ -43,17 +45,15 @@
                 <table class="table" id="configTable">
                     <thead>
                         <tr>
-                            <th>Configuration Name</th>
-                            <th>Header/Trailer Skip</th>
-                            <th>Payable Col Pos</th>
-                            <th class="text-center">Action</th>
+                            <th>CONFIGURATION NAME</th>
+                            <th class="text-center">FILES ATTACHED</th>
+                            <th class="text-center">ACTION</th>
                         </tr>
                     </thead>
                     <tbody id="configTableBody">
                         <tr th:each="config : ${configurations}" class="config-row-item">
-                            <td th:text="${config.configName}" class="fw-medium"></td>
-                            <td th:text="${config.headerCount + ' / ' + config.trailerCount}"></td>
-                            <td th:text="${config.totalPayableColumn}"></td>
+                            <td class="fw-bold text-primary" th:text="${config.configName}"></td>
+                            <td class="text-center"><span class="badge bg-light text-dark border" th:text="${config.fileCount + ' Files'}"></span></td>
                             <td class="text-center">
                                 <button class="btn btn-outline-info btn-sm px-3 me-1" th:onclick="'previewConfig(' + ${config.id} + ')'">Preview</button>
                                 <button class="btn btn-outline-primary btn-sm px-3 me-1" th:onclick="'showEditModal(' + ${config.id} + ')'">Edit</button>
@@ -61,7 +61,7 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(configurations)}" id="noConfigRow">
-                            <td colspan="4" class="text-center py-4 text-muted">No saved configurations found.</td>
+                            <td colspan="3" class="text-center py-4 text-muted">No saved configurations found.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -89,40 +89,45 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="configId">
-                    <div class="mb-3">
-                        <label class="form-label">Configuration Name</label>
-                        <input type="text" id="configName" class="form-control">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label">Configuration Name</label>
+                            <input type="text" id="configName" class="form-control form-control-sm" placeholder="e.g. Monthly Payroll - March 2026">
+                        </div>
                     </div>
 
-                    <div class="config-row">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label class="form-label">Header Skip</label>
-                                <input type="number" id="headerCount" class="form-control form-control-sm" value="0">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Trailer Skip</label>
-                                <input type="number" id="trailerCount" class="form-control form-control-sm" value="0">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Total Payable Amount Col Pos</label>
-                                <input type="number" id="totalPayableColumn" class="form-control form-control-sm">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Overtime Total Col Pos</label>
-                                <input type="number" id="overtimeTotalAmountColumn" class="form-control form-control-sm">
-                            </div>
+                    <!-- Files Selection & Skip Counts -->
+                    <div class="card p-3 mb-4 border" style="background: #fcfdfe;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0" style="font-size: 0.85rem;">1. Select Files & Setup Mapping</h6>
+                            <button class="btn btn-outline-primary btn-sm" onclick="addNewFileRow()" style="font-size: 0.7rem;">+ Add File</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered bg-white" style="font-size: 0.75rem;">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>File Name</th>
+                                        <th style="width: 100px;">Header</th>
+                                        <th style="width: 100px;">Trailer</th>
+                                        <th style="width: 40px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="selectedFilesBody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="fw-bold mb-0">Columns Mapping</h6>
-                        <button class="btn btn-outline-primary btn-sm" onclick="addNewColumnRow()">+ Add Column</button>
+                        <h6 class="fw-bold mb-0" style="font-size: 0.85rem;">2. Detailed Columns Mapping</h6>
+                        <button class="btn btn-outline-primary btn-sm" onclick="addNewColumnRow()" style="font-size: 0.7rem;">+ Add Column</button>
                     </div>
 
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
+                                <tr>
                                     <th class="file-name-cell">File Name</th>
                                     <th class="column-name-cell">Column Name</th>
                                     <th style="width: 110px;">Data Type</th>
@@ -167,6 +172,7 @@
         let columnCurrentPage = 1;
         const columnPageSize = 5;
         let columnsData = []; // Array of {columnName, dataType, columnPosition, fileType, parse, isKey}
+        let selectedFilesConfig = []; // Array of {fileName, headerSkip, trailerSkip}
         
         /*[Hold uploadedFiles in JS]*/
         const uploadedFiles = /*[[${uploadedFiles}]]*/ [];
@@ -236,19 +242,65 @@
             renderConfigTable();
         }
 
-        // Column Mapping Logic
         function showCreateModal() {
             document.getElementById('configId').value = '';
             document.getElementById('configName').value = '';
-            document.getElementById('headerCount').value = '0';
-            document.getElementById('trailerCount').value = '0';
-            document.getElementById('totalPayableColumn').value = '';
-            document.getElementById('overtimeTotalAmountColumn').value = '';
             columnsData = [];
+            selectedFilesConfig = [];
             columnCurrentPage = 1;
             document.querySelector('#configModal .modal-title').innerText = 'New Configuration';
+            
+            addNewFileRow();
             addNewColumnRow();
             modal.show();
+        }
+
+        function addNewFileRow() {
+            selectedFilesConfig.push({ fileName: '', headerSkip: 0, trailerSkip: 0 });
+            renderSelectedFilesSkips();
+        }
+
+        function renderSelectedFilesSkips() {
+            const tbody = document.getElementById('selectedFilesBody');
+            tbody.innerHTML = '';
+            selectedFilesConfig.forEach((sc, idx) => {
+                const tr = document.createElement('tr');
+                let fileOptionsHTML = '<option value="" disabled ' + (!sc.fileName ? 'selected' : '') + '>-- Select File --</option>';
+                uploadedFiles.forEach(f => {
+                    const isSelected = sc.fileName === f.fileName ? 'selected' : '';
+                    fileOptionsHTML += `<option value="${f.fileName}" ${isSelected}>${f.fileName}</option>`;
+                });
+
+                tr.innerHTML = `
+                    <td>
+                        <select class="form-select form-select-sm py-0" onchange="updateFileConfig(${idx}, 'fileName', this.value)" style="font-size: 0.72rem;">
+                            ${fileOptionsHTML}
+                        </select>
+                    </td>
+                    <td><input type="number" class="form-control form-control-sm py-0" value="${sc.headerSkip}" onchange="updateFileConfig(${idx}, 'headerSkip', this.value)"></td>
+                    <td><input type="number" class="form-control form-control-sm py-0" value="${sc.trailerSkip}" onchange="updateFileConfig(${idx}, 'trailerSkip', this.value)"></td>
+                    <td class="text-center">
+                        <button class="btn btn-link text-danger btn-sm p-0" onclick="removeFileRow(${idx})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            renderColumnTable(); // Re-render column dropdowns
+        }
+
+        function updateFileConfig(idx, field, val) {
+            selectedFilesConfig[idx][field] = (field === 'fileName') ? val : (parseInt(val) || 0);
+            if (field === 'fileName') renderColumnTable();
+        }
+
+        function removeFileRow(idx) {
+            selectedFilesConfig.splice(idx, 1);
+            renderSelectedFilesSkips();
         }
 
         function showEditModal(id) {
@@ -258,14 +310,12 @@
                     if (!data) return;
                     document.getElementById('configId').value = id;
                     document.getElementById('configName').value = data.configName || '';
-                    document.getElementById('headerCount').value = data.headerCount;
-                    document.getElementById('trailerCount').value = data.trailerCount;
-                    document.getElementById('totalPayableColumn').value = data.totalPayableColumn;
-                    document.getElementById('overtimeTotalAmountColumn').value = data.overtimeTotalAmountColumn || '';
                     document.querySelector('#configModal .modal-title').innerText = 'Edit Configuration';
                     
+                    selectedFilesConfig = data.fileConfigs || [];
+                    
                     columnsData = data.columns.map(col => ({
-                        fileType: col.fileType || 'Regular File',
+                        fileType: col.fileType,
                         columnName: col.columnName,
                         dataType: col.dataType,
                         columnPosition: col.columnPosition,
@@ -274,6 +324,8 @@
                         isKey: col.isKey === true ? true : false
                     }));
                     columnCurrentPage = 1;
+                    
+                    renderSelectedFilesSkips();
                     renderColumnTable();
                     modal.show();
                 });
@@ -336,16 +388,13 @@
                 const globalIdx = startIndex + idx;
                 const row = document.createElement('tr');
                 let fileOptionsHTML = '';
-                if (uploadedFiles && uploadedFiles.length > 0) {
-                    uploadedFiles.forEach(f => {
-                        const isSelected = col.fileType === f.fileName ? 'selected' : '';
-                        fileOptionsHTML += `<option value="${f.fileName}" ${isSelected}>${f.fileName}</option>`;
+                if (selectedFilesConfig.length > 0) {
+                    selectedFilesConfig.forEach(sc => {
+                        const isSelected = col.fileType === sc.fileName ? 'selected' : '';
+                        fileOptionsHTML += `<option value="${sc.fileName}" ${isSelected}>${sc.fileName}</option>`;
                     });
                 } else {
-                    const regSelected = col.fileType === 'Regular File' ? 'selected' : '';
-                    const ovtSelected = col.fileType === 'Overtime File' ? 'selected' : '';
-                    fileOptionsHTML += `<option value="Regular File" ${regSelected}>Regular File</option>
-                                        <option value="Overtime File" ${ovtSelected}>Overtime File</option>`;
+                    fileOptionsHTML = '<option value="" disabled selected>-- No Files Selected --</option>';
                 }
 
                 row.innerHTML = `
@@ -431,23 +480,52 @@
             
             const id = document.getElementById('configId').value;
             const configName = document.getElementById('configName').value.trim();
-            const totalPayableCol = document.getElementById('totalPayableColumn').value;
-            const overtimeTotalCol = document.getElementById('overtimeTotalAmountColumn').value;
 
-            if (!configName || !totalPayableCol) {
-                Swal.fire('Error', 'Configuration name and Total Payable column are mandatory.', 'error');
+            if (!configName) {
+                Swal.fire('Error', 'Configuration name is mandatory.', 'error');
                 return;
             }
 
             const validColumns = columnsData.filter(c => c.columnName && c.columnName.trim() !== '');
 
+            // Validation: Every file must have at least one key, and the count must be consistent
+            const fileKeyCounts = {};
+            selectedFilesConfig.filter(f => f.fileName).forEach(f => {
+                fileKeyCounts[f.fileName] = validColumns.filter(c => c.fileType === f.fileName && c.isKey).length;
+            });
+
+            const filesWithNoKeys = Object.keys(fileKeyCounts).filter(fn => fileKeyCounts[fn] === 0);
+            if (filesWithNoKeys.length > 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Missing Key Column',
+                    text: `Each file must have at least one 'Key' column. Missing in: ${filesWithNoKeys.join(', ')}`,
+                    customClass: { popup: 'rectangular-error-toast' }
+                });
+                return;
+            }
+
+            const keyCounts = Object.values(fileKeyCounts);
+            const firstCount = keyCounts[0];
+            const hasInconsistentKeys = keyCounts.some(count => count !== firstCount);
+            if (hasInconsistentKeys) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Inconsistent Key Count',
+                    text: `All files must have the same number of 'Key' columns for matching.`,
+                    customClass: { popup: 'rectangular-error-toast' }
+                });
+                return;
+            }
+
             const data = {
                 id: id ? parseInt(id) : null,
                 configName: configName,
-                headerCount: parseInt(document.getElementById('headerCount').value) || 0,
-                trailerCount: parseInt(document.getElementById('trailerCount').value) || 0,
-                totalPayableColumn: parseInt(totalPayableCol),
-                overtimeTotalAmountColumn: overtimeTotalCol ? parseInt(overtimeTotalCol) : 0,
+                headerCount: 0,
+                trailerCount: 0,
+                totalPayableColumn: 0,
+                overtimeTotalAmountColumn: 0,
+                fileConfigs: selectedFilesConfig.filter(f => f.fileName),
                 columns: validColumns.map(c => ({
                     fileType: c.fileType,
                     columnName: c.columnName,

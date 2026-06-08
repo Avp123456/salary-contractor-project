@@ -164,10 +164,12 @@
             </div>
 
             <!-- Pagination Controls -->
-            <div class="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
-                <div class="small text-muted" id="paginationInfo">Showing 1 to 10 of 10</div>
+            <div id="paginationControls" class="d-flex justify-content-center mt-3 pb-3">
                 <nav>
-                    <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item"><button class="page-link" onclick="changePage(currentPage - 1)" id="prevBtn">Previous</button></li>
+                        <li class="page-item disabled"><span class="page-link" id="pageInfo">1 / 1</span></li>
+                        <li class="page-item"><button class="page-link" onclick="changePage(currentPage + 1)" id="nextBtn">Next</button></li>
                     </ul>
                 </nav>
             </div>
@@ -265,6 +267,37 @@
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
             document.getElementById('confirmDeleteBtn').setAttribute('href', url);
             deleteModal.show();
+        }
+
+        // Pagination Logic
+        let currentPage = 1;
+        const pageSize = 10;
+        let rows = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            rows = Array.from(document.querySelectorAll('tbody tr:not(.no-records)'));
+            if (rows.length > 0) renderTable();
+        });
+
+        function renderTable() {
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const totalPages = Math.ceil(rows.length / pageSize) || 1;
+
+            rows.forEach((row, idx) => {
+                row.style.display = (idx >= startIndex && idx < endIndex) ? '' : 'none';
+            });
+
+            document.getElementById('pageInfo').innerText = `${currentPage} / ${totalPages}`;
+            document.getElementById('prevBtn').parentElement.classList.toggle('disabled', currentPage === 1);
+            document.getElementById('nextBtn').parentElement.classList.toggle('disabled', currentPage === totalPages);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(rows.length / pageSize) || 1;
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
         }
     </script>
 </body>

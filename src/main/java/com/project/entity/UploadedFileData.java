@@ -142,6 +142,7 @@ import javax.persistence.Table;
 	    private Double num48;
 	    private Double num49;
 	    private Double num50;
+	    private Double totalAmt;
 		public Long getId() {
 			return id;
 		}
@@ -757,8 +758,11 @@ import javax.persistence.Table;
 		public Double getNum50() {
 			return num50;
 		}
-		public void setNum50(Double num50) {
-			this.num50 = num50;
+		public Double getTotalAmt() {
+			return totalAmt;
+		}
+		public void setTotalAmt(Double totalAmt) {
+			this.totalAmt = totalAmt;
 		}
 	    
 	    
